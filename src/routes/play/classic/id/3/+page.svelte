@@ -12,9 +12,9 @@
   }
 
   const roundsData: RoundConfig[] = [
-    { roundNumber: 1, rows: 2, cols: 3, sizeText: '2 × 3' },
-    { roundNumber: 2, rows: 3, cols: 3, sizeText: '3 × 3' },
-    { roundNumber: 3, rows: 3, cols: 4, sizeText: '3 × 4' }
+    { roundNumber: 1, rows: 5, cols: 5, sizeText: '5 × 5' },
+    { roundNumber: 2, rows: 4, cols: 7, sizeText: '4 × 7' },
+    { roundNumber: 3, rows: 5, cols: 8, sizeText: '5 × 8' }
   ];
 
   // 게임 상태 관리를 위한 $state (Svelte 5)

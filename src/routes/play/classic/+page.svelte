@@ -218,6 +218,7 @@
     align-items: center;
   }
 
+  /* 초콜릿 바 패키지 전체 윤곽선 테두리 및 그림자 강화 */
   .chocolate-bar-package {
     position: absolute;
     width: 85%;
@@ -227,7 +228,10 @@
     display: flex;
     border-radius: 16px;
     overflow: hidden;
-    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+    /* 고대비 밝은 테두리선 추가하여 배경과 격리 */
+    border: 1px solid rgba(255, 246, 233, 0.25);
+    /* 아래로 깊게 깔리는 딥 섀도우 처리 */
+    box-shadow: 0 30px 70px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(0, 0, 0, 0.4);
   }
 
   .part-chocolate {
@@ -235,6 +239,7 @@
     height: 100%;
     position: relative;
     box-shadow: inset -10px 0 20px rgba(0,0,0,0.3);
+    border-right: 1px solid rgba(0, 0, 0, 0.4); /* 호일 경계 엣지 부여 */
   }
   .choco-pattern {
     position: absolute;
@@ -252,6 +257,9 @@
     position: relative;
     z-index: 2;
     box-shadow: 5px 0 15px rgba(0,0,0,0.3), -5px 0 15px rgba(0,0,0,0.3);
+    /* 호일 양옆에 가느다란 마감 입체선 */
+    border-left: 1px solid rgba(255,255,255,0.4);
+    border-right: 1px solid rgba(0,0,0,0.4);
   }
   .foil-texture {
     position: absolute;
@@ -276,8 +284,9 @@
     border: 2px solid rgba(255, 183, 3, 0.4);
     padding: 2rem 4rem;
     text-align: center;
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(0, 0, 0, 0.3);
     backdrop-filter: blur(4px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.4);
   }
   .brand-text {
     display: block;
@@ -285,7 +294,7 @@
     font-size: 3.5rem;
     color: #ffb703;
     letter-spacing: 4px;
-    text-shadow: 2px 4px 8px rgba(0, 0, 0, 0.5);
+    text-shadow: 2px 4px 8px rgba(0, 0, 0, 0.6);
   }
   .edition-text {
     font-size: 0.85rem;
@@ -302,8 +311,9 @@
   }
 
   .arrow-btn {
-    background: rgba(82, 50, 28, 0.3);
-    border: 1px solid rgba(255, 246, 233, 0.1);
+    background: rgba(82, 50, 28, 0.4);
+    /* 버튼 화살표 영역 테두리 선명화 */
+    border: 1px solid rgba(255, 183, 3, 0.25);
     color: #ffb703;
     width: 60px;
     height: 120px;
@@ -314,10 +324,12 @@
     justify-content: center;
     transition: all 0.2s;
     flex-shrink: 0;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
   }
   .arrow-btn:hover {
     background: #ffb703;
     color: #2b1810;
+    border-color: #ffb703;
     transform: scale(1.05);
   }
   .arrow-btn svg { width: 32px; height: 32px; }
@@ -334,13 +346,16 @@
     min-height: 180px;
   }
 
+  /* 하단 영역 카드 테두리(border) 투명도 상향 및 바깥 어두운 그림자 추가 */
   .glass-card {
-    background: rgba(82, 50, 28, 0.35);
+    background: rgba(43, 24, 16, 0.6); /* 투명도를 살짝 낮추어 내부 색상 응집력 고정 */
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 246, 233, 0.12);
+    /* 테두리 가시성 0.12 -> 0.28로 선명화 */
+    border: 1px solid rgba(255, 246, 233, 0.28);
     border-radius: 16px;
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+    /* 배경이 어두우므로 퍼지는 그림자를 좀 더 진하게 */
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255,255,255,0.1);
     box-sizing: border-box;
   }
 
@@ -357,7 +372,8 @@
   }
 
   .desc-part-1 {
-    border-right: 1px solid rgba(255, 246, 233, 0.1);
+    /* 수직 분할선 투명도 업그레이드 */
+    border-right: 1px solid rgba(255, 246, 233, 0.2);
     padding-right: 2rem;
     display: flex;
     flex-direction: column;
@@ -368,6 +384,7 @@
     font-size: 1.8rem;
     color: #fff;
     margin: 0;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.4);
   }
   .stars {
     color: #ffb703;
@@ -381,8 +398,9 @@
     margin-top: 0.5rem;
   }
   .round-badge-item {
-    background: rgba(0, 0, 0, 0.25);
-    border: 1px solid rgba(255, 183, 3, 0.2);
+    background: rgba(0, 0, 0, 0.4);
+    /* 배지 낱개 경계 윤곽선 강화 */
+    border: 1px solid rgba(255, 183, 3, 0.4);
     border-radius: 6px;
     display: flex;
     flex-direction: column;
@@ -418,10 +436,10 @@
     font-size: 0.85rem;
     font-style: italic;
     color: #ffb703;
-    opacity: 0.8;
+    opacity: 0.9;
   }
 
-  /* 플레이 시작 버튼 패널 */
+  /* 플레이 시작 버튼 패널 마감 윤곽선 디자인 강화 */
   .play-panel-btn {
     display: flex;
     flex-direction: column;
@@ -430,13 +448,15 @@
     text-decoration: none;
     transition: all 0.2s ease;
     cursor: pointer;
-    background: rgba(255, 183, 3, 0.15);
-    border-color: rgba(255, 183, 3, 0.3);
+    background: rgba(255, 183, 3, 0.12);
+    /* 기본 테두리를 노란색 계열 테두리로 한 층 명확화 */
+    border: 1px solid rgba(255, 183, 3, 0.45);
   }
   .play-panel-btn:hover {
     background: #ffb703;
     border-color: #ffb703;
     transform: translateY(-4px);
+    box-shadow: 0 25px 50px rgba(255, 183, 3, 0.25);
   }
   .play-icon {
     font-size: 1.8rem;
@@ -447,8 +467,9 @@
     font-family: 'Do Hyeon', sans-serif;
     font-size: 1.4rem;
     color: #fff;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
   }
-  .play-panel-btn:hover .play-text { color: #2b1810; }
+  .play-panel-btn:hover .play-text { color: #2b1810; text-shadow: none; }
   .play-panel-btn:hover .play-icon { transform: scale(1.2) rotate(-10deg); }
 
   /* 반응형 모바일 대응 */
@@ -459,7 +480,7 @@
     .animated-desc-contents { grid-template-columns: 1fr; gap: 1.2rem; }
     .desc-part-1 {
       border-right: none;
-      border-bottom: 1px solid rgba(255, 246, 233, 0.1);
+      border-bottom: 1px solid rgba(255, 246, 233, 0.2);
       padding-right: 0;
       padding-bottom: 1rem;
     }
