@@ -116,13 +116,17 @@
   const miniRowIndices = Array.from({ length: MINI_ROWS }, (_, i) => i);
   const miniColIndices = Array.from({ length: MINI_COLS }, (_, i) => i);
 
+  // ⚡ 속도를 제어하는 가변 타이머 상수 설정
+  const BASE_SPEED = 600;       // 일반적인 단계 전환 속도 (빠르게 진행)
+  const RESET_DELAY = 2200;     // 애니메이션 전체 동작 후 리셋 직전의 긴 정지 시간
+
   let miniBoard = $state<boolean[][]>(
     Array.from({ length: MINI_ROWS }, () => Array.from({ length: MINI_COLS }, () => true))
   );
   
   let miniHoverTarget = $state<Cell | null>(null);
   let isLoseState = $state(false);
-  let miniTimer: any = null;
+  let miniTimer: any = null; // 이제 setTimeout의 ID가 할당됩니다.
   let miniCycleStep = 0;
 
   let miniPreviewSet = $derived.by(() =>
@@ -149,8 +153,11 @@
     miniHoverTarget = null;
     isLoseState = false;
 
+    let isLastStep = false; // 현재 루프의 최종 결과물인지 체크하기 위한 스위치
+
     if (currentVisual === 'setup') {
       miniBoard = fillMiniBoard(true);
+      isLastStep = true; // 1번 슬라이드는 상태가 고정되어 있으므로 매 틱이 종료 상태와 같습니다.
     } 
     else if (currentVisual === 'select') {
       const subStep = miniCycleStep % 3;
@@ -161,67 +168,78 @@
       } else {
         miniBoard = fillMiniBoard(true);
         biteMiniBoard(1, 2); // 먹기 완료
+        isLastStep = true;   // ⚡ 결과물이 모두 나타난 상태
       }
     } 
     else if (currentVisual === 'loop') {
-      // 총 7단계에 걸쳐 번갈아 베어 물어 해골 하나만 남기는 무한 루프 생성
       const subStep = miniCycleStep % 7;
       
       if (subStep === 0) {
-        // 2번 슬라이드에서 먹힌 상태와 완벽히 일치하게 시작
         miniBoard = fillMiniBoard(true);
         biteMiniBoard(1, 2);
       } else if (subStep === 1) {
-        miniHoverTarget = { r: 2, c: 0 }; // 플레이어 B가 노리는 지점
+        miniHoverTarget = { r: 2, c: 0 };
       } else if (subStep === 2) {
-        biteMiniBoard(2, 0); // 플레이어 B가 먹음
+        biteMiniBoard(2, 0);
       } else if (subStep === 3) {
-        miniHoverTarget = { r: 0, c: 1 }; // 플레이어 A가 노리는 지점
+        miniHoverTarget = { r: 0, c: 1 };
       } else if (subStep === 4) {
-        biteMiniBoard(0, 1); // 플레이어 A가 먹음
+        biteMiniBoard(0, 1);
       } else if (subStep === 5) {
-        miniHoverTarget = { r: 1, c: 0 }; // 플레이어 B가 노리는 지점
+        miniHoverTarget = { r: 1, c: 0 };
       } else {
         biteMiniBoard(1, 0); // 결국 (0, 0)과 (0, 1)만 남게 됨
+        isLastStep = true;   // ⚡ 루프 사이클 마지막 단계
       }
     } 
     else if (currentVisual === 'lose') {
       const subStep = miniCycleStep % 2;
       if (subStep === 0) {
-        // 마지막 독약 한 조각만 남은 긴박한 상태
         miniBoard = fillMiniBoard(false);
         miniBoard[0][0] = true;
       } else {
         miniBoard[0][0] = false;
         isLoseState = true; 
+        isLastStep = true;   // ⚡ 패배 오버레이가 올라온 최종 시점
       }
+    }
+
+    // ⚡ 마지막 단계 플래그에 따라 다음 타이머 대기 시간을 가변 결정
+    const nextDelay = isLastStep ? RESET_DELAY : BASE_SPEED;
+
+    miniTimer = setTimeout(() => {
+      miniCycleStep += 1;
+      updateMiniVisual();
+    }, nextDelay);
+  }
+
+  // 타이머 작동 연쇄를 구동시키는 헬퍼
+  function startMiniTimer() {
+    stopMiniTimer();
+    updateMiniVisual();
+  }
+
+  // 기존 타이머를 안정적으로 해제하는 헬퍼
+  function stopMiniTimer() {
+    if (miniTimer) {
+      clearTimeout(miniTimer);
+      miniTimer = null;
     }
   }
 
   function handleSlideChange(newSlideIndex: number) {
-    if (miniTimer) {
-      clearInterval(miniTimer);
-      miniTimer = null;
-    }
+    stopMiniTimer();
     currentSlide = newSlideIndex;
     miniCycleStep = 0;
-    updateMiniVisual();
-    
-    miniTimer = setInterval(() => {
-      miniCycleStep += 1;
-      updateMiniVisual();
-    }, 1500);
+    startMiniTimer();
   }
 
   onMount(() => {
-    miniTimer = setInterval(() => {
-      miniCycleStep += 1;
-      updateMiniVisual();
-    }, 1500);
+    startMiniTimer();
   });
 
   onDestroy(() => {
-    if (miniTimer) clearInterval(miniTimer);
+    stopMiniTimer();
   });
 
   function nextSlide() {
