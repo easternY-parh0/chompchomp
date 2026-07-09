@@ -70,25 +70,29 @@
     selectCell(pos);
   }
 
-  function tileEmoji(t: Tile): string {
+  function tileEmoji(t: Tile): string | null {
     if (t.isPoison) return '☠️';
     if (t.isBomb) return '💣';
     if (t.isBlackhole) return '🕳️';
     if (t.linkId !== null) return '🔗';
     if (t.isRegrowth) return '🌱';
-    if (t.isIce) return t.hp >= 2 ? '🧊' : '🧊💔';
-    return '🍫';
+    if (t.isIce) return '🧊';
+    return null;
   }
 
   function regrowCountdown(t: Tile): number {
     if (t.regrowAt === null) return 0;
     return Math.max(t.regrowAt - board.roundCount, 0);
   }
+
+  function selectedLabel(pos: Pos): string {
+    return `선택한 조각: ${pos.r + 1}행 ${pos.c + 1}열`;
+  }
 </script>
 
 <div class="chomp-board-wrap">
   <div
-    class="chomp-board"
+    class="chocolate-board"
     style="--rows:{board.rows}; --cols:{board.cols}"
     role="group"
     aria-label="촘프 보드"
@@ -101,11 +105,11 @@
         {:else}
           <button
             type="button"
-            class="cell"
+            class="choco-piece"
             class:preview={t.alive && previewSet.has(`${r}-${c}`)}
             class:just-removed={lastRemovedSet.has(`${r}-${c}`)}
-            class:poison={t.isPoison}
-            class:dead={!t.alive}
+            class:is-poison={t.isPoison}
+            class:eaten={!t.alive}
             class:regrowing={!t.alive && t.isRegrowth && t.regrowAt !== null}
             class:selected={selectedAnchor?.r === r && selectedAnchor?.c === c}
             disabled={disabled || !t.alive}
@@ -115,12 +119,22 @@
             onkeydown={(e) => handleKey(e, { r, c })}
           >
             {#if t.alive}
-              <span class="piece" transition:scale={{ duration: 200 }}>{tileEmoji(t)}</span>
+              {@const glyph = tileEmoji(t)}
+              <div class="piece-inner">
+                {#if glyph}
+                  <span class="piece-glyph" transition:scale={{ duration: 200 }}>{glyph}</span>
+                  {#if t.isIce && t.hp === 1}
+                    <span class="crack-badge" aria-label="금이 갔어요">💔</span>
+                  {/if}
+                {:else}
+                  <span class="deco-indent"></span>
+                {/if}
+              </div>
             {:else if t.isRegrowth && t.regrowAt !== null}
-              <span class="regrow-ghost" aria-label="{regrowCountdown(t)}라운드 후 재생">
+              <div class="regrow-ghost" aria-label="{regrowCountdown(t)}라운드 후 재생">
                 <span class="ghost-icon">🌱</span>
                 <span class="regrow-count">{regrowCountdown(t)}</span>
-              </span>
+              </div>
             {/if}
           </button>
         {/if}
@@ -128,16 +142,20 @@
     {/each}
   </div>
 
-  {#if selectedAnchor}
-    <div class="direction-panel">
+  <div class="control-bar">
+    <p class="control-hint" class:selected-hint={selectedAnchor !== null}>
+      {selectedAnchor ? selectedLabel(selectedAnchor) : '🍫 먹고 싶은 조각을 하나 골라보세요'}
+    </p>
+
+    <div class="control-body" class:tutorial-body={board.isTutorial}>
       {#if !board.isTutorial}
-        <p class="direction-hint">어느 방향으로 촘프할까요?</p>
         <div class="direction-grid">
           {#each DIRECTIONS as d (d.quadrant)}
             <button
               type="button"
               class="direction-btn"
-              class:active={selectedQuadrant === d.quadrant}
+              class:active={selectedAnchor !== null && selectedQuadrant === d.quadrant}
+              disabled={selectedAnchor === null}
               onclick={() => chooseDirection(d.quadrant)}
             >
               <span class="arrow">{d.arrow}</span>
@@ -146,12 +164,17 @@
           {/each}
         </div>
       {/if}
-      <div class="panel-actions">
-        <button type="button" class="cancel-btn" onclick={cancelSelection}>취소</button>
-        <button type="button" class="confirm-btn" onclick={confirmMove}>촘프하기! 🍫</button>
+
+      <div class="action-col">
+        <button type="button" class="confirm-btn" disabled={selectedAnchor === null} onclick={confirmMove}>
+          촘프하기! 🍫
+        </button>
+        <button type="button" class="cancel-btn" disabled={selectedAnchor === null} onclick={cancelSelection}>
+          취소
+        </button>
       </div>
     </div>
-  {/if}
+  </div>
 </div>
 
 <style>
@@ -159,45 +182,134 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1rem;
+    gap: 1.25rem;
+    width: 100%;
   }
 
-  .chomp-board {
+  .chocolate-board {
     display: grid;
     grid-template-columns: repeat(var(--cols), 1fr);
-    gap: 10px;
-    max-width: min(96vw, calc(var(--cols) * 5.8rem));
+    grid-template-rows: repeat(var(--rows), 1fr);
+    gap: 8px;
+    background: #3d2314;
+    padding: 18px;
+    border-radius: 16px;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6), inset 0 0 20px rgba(0, 0, 0, 0.4);
+    width: min(92vw, 480px);
+    height: min(60vh, 400px);
+    box-sizing: border-box;
     margin: 0 auto;
   }
 
   .hole {
-    aspect-ratio: 1;
+    width: 100%;
+    height: 100%;
   }
 
-  .cell {
-    aspect-ratio: 1;
+  .choco-piece {
+    width: 100%;
+    height: 100%;
     border: none;
     font-family: inherit;
-    border-radius: 14px;
-    background: var(--color-choco, #6b4226);
+    border-radius: 8px;
+    background: #7a4c2d;
+    box-shadow: 0 6px 0 #54341e, 0 8px 15px rgba(0, 0, 0, 0.4);
     display: grid;
     place-items: center;
-    font-size: clamp(1.8rem, 5.5vw, 2.6rem);
+    padding: 4px;
+    box-sizing: border-box;
     cursor: pointer;
-    padding: 0;
-    transition: background 0.15s, transform 0.15s;
+    position: relative;
+    transition: transform 0.1s, box-shadow 0.1s, opacity 0.4s ease-out, background 0.15s;
   }
 
-  .cell:disabled {
+  .choco-piece:hover:not(:disabled) {
+    transform: translateY(-2px);
+    filter: brightness(1.1);
+  }
+
+  .choco-piece:active:not(:disabled) {
+    transform: translateY(4px);
+    box-shadow: 0 2px 0 #54341e;
+  }
+
+  .choco-piece:disabled {
     cursor: default;
   }
 
-  .cell.dead {
-    background: transparent;
+  .choco-piece.is-poison {
+    background: #9d3a3a;
+    box-shadow: 0 6px 0 #6e2525, 0 8px 15px rgba(0, 0, 0, 0.4);
   }
 
-  .cell.regrowing {
-    background: rgba(107, 66, 38, 0.12);
+  .choco-piece.eaten {
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.8);
+  }
+
+  .choco-piece.regrowing {
+    opacity: 1;
+    pointer-events: none;
+    transform: scale(1);
+    background: rgba(255, 246, 233, 0.06);
+    box-shadow: inset 0 0 0 1px rgba(255, 246, 233, 0.1);
+  }
+
+  .choco-piece.preview {
+    outline: 3px dashed #ffb703;
+    outline-offset: -3px;
+    filter: brightness(1.15);
+  }
+
+  .choco-piece.selected {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 0 #54341e, 0 0 0 3px #ffb703, 0 12px 20px rgba(0, 0, 0, 0.45);
+  }
+
+  .choco-piece.just-removed {
+    animation: flash 0.4s ease;
+  }
+
+  .choco-piece:focus-visible {
+    outline: 3px solid #ffb703;
+    outline-offset: 2px;
+  }
+
+  @keyframes flash {
+    0% {
+      background: #ffb703;
+    }
+  }
+
+  .piece-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: 4px;
+    display: grid;
+    place-items: center;
+    box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.2);
+    font-size: clamp(0.9rem, calc(220px / var(--cols)), 2rem);
+  }
+
+  .crack-badge {
+    position: absolute;
+    bottom: 1px;
+    right: 1px;
+    font-size: 0.5em;
+    line-height: 1;
+    background: #1a0f0a;
+    border-radius: 999px;
+    padding: 0.15em 0.25em;
+  }
+
+  .deco-indent {
+    width: 40%;
+    height: 40%;
+    border: 2px solid rgba(0, 0, 0, 0.2);
+    border-radius: 2px;
+    background: rgba(0, 0, 0, 0.08);
   }
 
   .regrow-ghost {
@@ -209,80 +321,85 @@
   }
 
   .regrow-ghost .ghost-icon {
-    font-size: 0.85em;
+    font-size: clamp(0.7rem, calc(160px / var(--cols)), 1.5rem);
     opacity: 0.35;
-    filter: grayscale(40%);
+    filter: grayscale(50%);
   }
 
   .regrow-ghost .regrow-count {
     position: absolute;
     bottom: 2px;
     right: 2px;
-    min-width: 1.1em;
+    min-width: 1.2em;
     text-align: center;
-    background: var(--color-choco-dark, #4a2c1a);
-    color: white;
-    font-size: 0.55em;
-    line-height: 1.4;
+    background: #1a0f0a;
+    color: #fff6e9;
+    font-size: 0.7rem;
+    line-height: 1.5;
     border-radius: 999px;
-    padding: 0 0.3em;
+    padding: 0 0.35em;
   }
 
-  .cell.preview {
-    background: rgba(58, 175, 169, 0.55);
-    outline: 3px dashed var(--color-mint, #3aafa9);
-    outline-offset: -3px;
-  }
-
-  .cell.selected {
-    transform: translateY(-3px) scale(1.05);
-    box-shadow: 0 4px 0 rgba(74, 44, 26, 0.35);
-  }
-
-  .cell.poison {
-    background: var(--color-poison, #e63946);
-  }
-
-  .cell.just-removed {
-    animation: flash 0.4s ease;
-  }
-
-  .cell:focus-visible {
-    outline: 3px solid var(--color-sun, #ffb627);
-    outline-offset: 2px;
-  }
-
-  @keyframes flash {
-    0% {
-      background: var(--color-sun, #ffb627);
-    }
-  }
-
-  .direction-panel {
-    background: var(--color-cream, #fff6e9);
-    border: 2px solid var(--color-choco, #6b4226);
-    border-radius: 18px;
-    padding: 1rem;
+  .control-bar {
+    background: rgba(82, 50, 28, 0.25);
+    border: 1px solid rgba(255, 246, 233, 0.08);
+    border-radius: 12px;
+    backdrop-filter: blur(8px);
+    padding: 1.1rem 1.5rem;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 0.75rem;
-    max-width: 320px;
+    width: 100%;
+    max-width: 560px;
+    min-height: 92px;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+
+  .control-body {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 1.25rem;
     width: 100%;
   }
 
-  .direction-hint {
-    margin: 0;
-    font-size: 0.9rem;
-    color: var(--color-choco-dark, #4a2c1a);
-    font-weight: 700;
+  .control-body.tutorial-body {
+    justify-content: center;
   }
 
   .direction-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 0.5rem;
-    width: 100%;
+    flex: 1 1 55%;
+  }
+
+  .action-col {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.6rem;
+    flex: 1 1 45%;
+  }
+
+  .control-body.tutorial-body .action-col {
+    flex: 0 1 260px;
+  }
+
+  .control-hint {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #fff6e9;
+    opacity: 0.75;
+    text-align: center;
+  }
+
+  .control-hint.selected-hint {
+    opacity: 1;
+    font-weight: 700;
+    color: #ffb703;
   }
 
   .direction-btn {
@@ -290,18 +407,19 @@
     flex-direction: column;
     align-items: center;
     gap: 0.15rem;
-    border: 2px solid var(--color-choco, #6b4226);
-    background: white;
-    border-radius: 12px;
+    border: 1px solid rgba(255, 246, 233, 0.15);
+    background: rgba(255, 246, 233, 0.05);
+    color: #fff6e9;
+    border-radius: 10px;
     padding: 0.5rem;
     cursor: pointer;
     font-family: inherit;
   }
 
   .direction-btn.active {
-    background: var(--color-mint, #3aafa9);
-    color: white;
-    border-color: var(--color-mint, #3aafa9);
+    background: #ffb703;
+    color: #1a0f0a;
+    border-color: #ffb703;
   }
 
   .direction-btn .arrow {
@@ -312,35 +430,55 @@
     font-size: 0.7rem;
   }
 
-  .panel-actions {
-    display: flex;
-    gap: 0.5rem;
-    width: 100%;
-  }
-
   .cancel-btn,
   .confirm-btn {
-    flex: 1;
+    width: 100%;
     border: none;
-    border-radius: 999px;
-    padding: 0.6rem 1rem;
+    border-radius: 8px;
+    padding: 0.65rem 1rem;
     font-weight: 700;
-    font-family: inherit;
+    font-family: 'Do Hyeon', inherit;
     cursor: pointer;
+    box-sizing: border-box;
+  }
+
+  .confirm-btn {
+    padding: 0.9rem 1rem;
+    font-size: 1.05rem;
   }
 
   .cancel-btn {
-    background: #e5d9c8;
-    color: var(--color-choco-dark, #4a2c1a);
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff6e9;
   }
 
   .confirm-btn {
-    background: var(--color-sun, #ffb627);
-    color: var(--color-choco-dark, #4a2c1a);
+    background: #4ade80;
+    color: #1a0f0a;
+  }
+
+  .direction-btn:disabled,
+  .cancel-btn:disabled,
+  .confirm-btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+    filter: grayscale(60%);
+  }
+
+  .direction-btn:hover:not(:disabled) {
+    border-color: #ffb703;
+  }
+
+  .cancel-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .confirm-btn:hover:not(:disabled) {
+    background: #22c55e;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .cell {
+    .choco-piece {
       transition: none;
       animation: none;
     }
