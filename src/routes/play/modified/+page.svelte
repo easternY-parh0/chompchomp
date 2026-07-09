@@ -3,7 +3,7 @@
   import { SvelteSet } from 'svelte/reactivity';
   import type { BoardState, Pos, Quadrant, Shape, ModifierFlags } from '$lib/types';
   import { ALL_MODIFIER_KEYS, MODIFIER_INFO, NO_MODIFIERS } from '$lib/types';
-  import { createBoard, commitMove, remainingNonPoisonCount, pickRandom } from '$lib/engine';
+  import { createBoard, commitMove, pickRandom, advanceRound } from '$lib/engine';
   import { chooseAiMove } from '$lib/ai';
   import ChompBoard from '$lib/components/ChompBoard.svelte';
 
@@ -34,8 +34,7 @@
       bomb: active.has('bomb'),
       blackhole: active.has('blackhole'),
       linked: active.has('linked'),
-      regrowth: active.has('regrowth'),
-      rangeLimited: active.has('rangeLimited')
+      regrowth: active.has('regrowth')
     };
   }
 
@@ -73,11 +72,6 @@
       return;
     }
 
-    if (remainingNonPoisonCount(board) === 0) {
-      handleBoardCleared();
-      return;
-    }
-
     phase = 'ai-thinking';
     message = 'AI가 생각 중...';
     setTimeout(runAiTurn, 500 + Math.random() * 500);
@@ -93,12 +87,8 @@
       return;
     }
 
-    if (remainingNonPoisonCount(board) === 0) {
-      lives -= 1;
-      message = '독약만 남아서 어쩔 수 없이 목숨을 잃었어요.';
-      phase = lives <= 0 ? 'game-over' : 'life-lost';
-      return;
-    }
+    // 사람 한 번 + AI 한 번 = 1라운드가 방금 끝났으니, 이때만 재생 조각을 갱신한다.
+    advanceRound(board);
 
     phase = 'playing';
     message = isTutorialTier ? `튜토리얼 ${currentTier} / 3` : `${currentTier}번째 판`;

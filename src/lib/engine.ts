@@ -1,7 +1,7 @@
 import type { BoardConfig, BoardState, Tile, Pos, Quadrant, MoveResult, ModifierFlags } from './types';
 import { generateShapeMask } from './shapes';
 
-const REGROWTH_DELAY = 3;
+const REGROWTH_ROUND_DELAY = 2;
 
 function emptyTile(hole: boolean): Tile {
   return {
@@ -14,8 +14,7 @@ function emptyTile(hole: boolean): Tile {
     isBlackhole: false,
     linkId: null,
     isRegrowth: false,
-    regrowAt: null,
-    rangeLimit: null
+    regrowAt: null
   };
 }
 
@@ -44,7 +43,6 @@ function aliveNonSpecialPositions(state: BoardState, exclude: Set<string>): Pos[
         !t.isBlackhole &&
         t.linkId === null &&
         !t.isRegrowth &&
-        t.rangeLimit === null &&
         !exclude.has(key)
       ) {
         out.push({ r, c });
@@ -64,6 +62,7 @@ export function createBoard(config: BoardConfig): BoardState {
     cols: config.cols,
     tiles,
     turnCount: 0,
+    roundCount: 0,
     isTutorial: config.isTutorial
   };
 
@@ -132,13 +131,6 @@ function applyModifierSetup(state: BoardState, modifiers: ModifierFlags): void {
     picked.forEach((p) => (state.tiles[p.r][p.c].isRegrowth = true));
     claim(picked);
   }
-
-  if (modifiers.rangeLimited) {
-    const candidates = aliveNonSpecialPositions(state, used);
-    const picked = pickRandom(candidates, Math.min(2, candidates.length));
-    picked.forEach((p) => (state.tiles[p.r][p.c].rangeLimit = 2));
-    claim(picked);
-  }
 }
 
 export function classifyQuadrant(anchor: Pos, target: Pos): Quadrant {
@@ -155,9 +147,6 @@ export function computeSelection(state: BoardState, anchor: Pos, quadrant: Quadr
   const rowSign = effective === 'se' || effective === 'sw' ? 1 : -1;
   const colSign = effective === 'se' || effective === 'ne' ? 1 : -1;
 
-  const anchorTile = state.tiles[anchor.r][anchor.c];
-  const range = anchorTile.rangeLimit;
-
   const out: Pos[] = [];
   for (let r = 0; r < state.rows; r++) {
     if (rowSign > 0 ? r < anchor.r : r > anchor.r) continue;
@@ -165,10 +154,6 @@ export function computeSelection(state: BoardState, anchor: Pos, quadrant: Quadr
       if (colSign > 0 ? c < anchor.c : c > anchor.c) continue;
       const t = state.tiles[r][c];
       if (t.hole || !t.alive) continue;
-      if (range !== null) {
-        const dist = Math.max(Math.abs(r - anchor.r), Math.abs(c - anchor.c));
-        if (dist > range) continue;
-      }
       out.push({ r, c });
     }
   }
@@ -177,7 +162,6 @@ export function computeSelection(state: BoardState, anchor: Pos, quadrant: Quadr
 
 export function commitMove(state: BoardState, anchor: Pos, quadrant: Quadrant): MoveResult {
   const selection = computeSelection(state, anchor, quadrant);
-  const atePoison = selection.some((p) => state.tiles[p.r][p.c].isPoison);
 
   const removed: Pos[] = [];
   const cracked: Pos[] = [];
@@ -193,7 +177,7 @@ export function commitMove(state: BoardState, anchor: Pos, quadrant: Quadrant): 
     removed.push({ r, c });
 
     if (t.isRegrowth) {
-      t.regrowAt = state.turnCount + 1 + REGROWTH_DELAY;
+      t.regrowAt = state.roundCount + REGROWTH_ROUND_DELAY;
     }
 
     if (t.isBomb) {
@@ -261,20 +245,33 @@ export function commitMove(state: BoardState, anchor: Pos, quadrant: Quadrant): 
 
   state.turnCount += 1;
 
-  const regrewIn: Pos[] = [];
+  // 폭탄/블랙홀/연결 연쇄로 "직접 고르지 않은" 독약이 같이 사라지는 경우도 있으므로,
+  // 최초 선택 범위가 아니라 이번 수로 실제로 사라진 모든 칸을 기준으로 판정한다.
+  const atePoison = removed.some((p) => state.tiles[p.r][p.c].isPoison);
+
+  return { atePoison, removed, cracked };
+}
+
+/**
+ * 사람 한 번 + AI 한 번 = 1라운드. 이 함수는 AI 턴이 끝난 직후,
+ * 즉 한 라운드가 완전히 끝났을 때만 호출한다.
+ * 재생 조각들의 카운트다운을 이때만 줄이고, 0이 되면 되살린다.
+ */
+export function advanceRound(state: BoardState): Pos[] {
+  state.roundCount += 1;
+  const revived: Pos[] = [];
   for (let r = 0; r < state.rows; r++) {
     for (let c = 0; c < state.cols; c++) {
       const t = state.tiles[r][c];
-      if (!t.alive && !t.hole && t.regrowAt !== null && t.regrowAt <= state.turnCount) {
+      if (!t.alive && !t.hole && t.regrowAt !== null && t.regrowAt <= state.roundCount) {
         t.alive = true;
         t.regrowAt = null;
         t.hp = 1;
-        regrewIn.push({ r, c });
+        revived.push({ r, c });
       }
     }
   }
-
-  return { atePoison, removed, cracked, regrewIn };
+  return revived;
 }
 
 export function remainingNonPoisonCount(state: BoardState): number {
@@ -293,6 +290,7 @@ export function cloneBoard(state: BoardState): BoardState {
     rows: state.rows,
     cols: state.cols,
     turnCount: state.turnCount,
+    roundCount: state.roundCount,
     isTutorial: state.isTutorial,
     tiles: state.tiles.map((row) => row.map((t) => ({ ...t })))
   };

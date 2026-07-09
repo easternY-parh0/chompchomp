@@ -12,8 +12,7 @@ export interface Tile {
   isBlackhole: boolean;
   linkId: number | null;
   isRegrowth: boolean;
-  regrowAt: number | null;
-  rangeLimit: number | null;
+  regrowAt: number | null; // 재생 예정 "라운드" 번호 (사람+AI가 한 번씩 둔 걸 1라운드로 침)
 }
 
 export interface ModifierFlags {
@@ -23,7 +22,6 @@ export interface ModifierFlags {
   blackhole: boolean;
   linked: boolean;
   regrowth: boolean;
-  rangeLimited: boolean;
 }
 
 export const ALL_MODIFIER_KEYS: (keyof ModifierFlags)[] = [
@@ -32,8 +30,7 @@ export const ALL_MODIFIER_KEYS: (keyof ModifierFlags)[] = [
   'bomb',
   'blackhole',
   'linked',
-  'regrowth',
-  'rangeLimited'
+  'regrowth'
 ];
 
 export const MODIFIER_INFO: Record<keyof ModifierFlags, { emoji: string; name: string; desc: string }> = {
@@ -65,12 +62,7 @@ export const MODIFIER_INFO: Record<keyof ModifierFlags, { emoji: string; name: s
   regrowth: {
     emoji: '🌱',
     name: '재생 조각',
-    desc: '사라진 뒤 몇 턴이 지나면 같은 자리에 다시 생겨나요.'
-  },
-  rangeLimited: {
-    emoji: '📏',
-    name: '사정거리 조각',
-    desc: '이 조각을 기준으로 고르면, 정해진 칸 수까지만 사라지고 나머지는 그대로 남아요.'
+    desc: '사라진 뒤 몇 라운드(나와 AI가 한 번씩 두는 것)가 지나면 같은 자리에 다시 생겨나요.'
   }
 };
 
@@ -80,8 +72,7 @@ export const NO_MODIFIERS: ModifierFlags = {
   bomb: false,
   blackhole: false,
   linked: false,
-  regrowth: false,
-  rangeLimited: false
+  regrowth: false
 };
 
 export interface BoardConfig {
@@ -97,6 +88,7 @@ export interface BoardState {
   cols: number;
   tiles: Tile[][];
   turnCount: number;
+  roundCount: number; // 사람+AI가 한 번씩 두면 +1
   isTutorial: boolean;
 }
 
@@ -109,5 +101,4 @@ export interface MoveResult {
   atePoison: boolean;
   removed: Pos[];
   cracked: Pos[];
-  regrewIn: Pos[];
 }

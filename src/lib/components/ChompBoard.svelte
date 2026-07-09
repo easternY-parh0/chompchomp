@@ -76,9 +76,13 @@
     if (t.isBlackhole) return '🕳️';
     if (t.linkId !== null) return '🔗';
     if (t.isRegrowth) return '🌱';
-    if (t.rangeLimit !== null) return '📏';
     if (t.isIce) return t.hp >= 2 ? '🧊' : '🧊💔';
     return '🍫';
+  }
+
+  function regrowCountdown(t: Tile): number {
+    if (t.regrowAt === null) return 0;
+    return Math.max(t.regrowAt - board.roundCount, 0);
   }
 </script>
 
@@ -102,6 +106,7 @@
             class:just-removed={lastRemovedSet.has(`${r}-${c}`)}
             class:poison={t.isPoison}
             class:dead={!t.alive}
+            class:regrowing={!t.alive && t.isRegrowth && t.regrowAt !== null}
             class:selected={selectedAnchor?.r === r && selectedAnchor?.c === c}
             disabled={disabled || !t.alive}
             tabindex={t.alive && !disabled ? 0 : -1}
@@ -111,6 +116,11 @@
           >
             {#if t.alive}
               <span class="piece" transition:scale={{ duration: 200 }}>{tileEmoji(t)}</span>
+            {:else if t.isRegrowth && t.regrowAt !== null}
+              <span class="regrow-ghost" aria-label="{regrowCountdown(t)}라운드 후 재생">
+                <span class="ghost-icon">🌱</span>
+                <span class="regrow-count">{regrowCountdown(t)}</span>
+              </span>
             {/if}
           </button>
         {/if}
@@ -184,6 +194,38 @@
 
   .cell.dead {
     background: transparent;
+  }
+
+  .cell.regrowing {
+    background: rgba(107, 66, 38, 0.12);
+  }
+
+  .regrow-ghost {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+  }
+
+  .regrow-ghost .ghost-icon {
+    font-size: 0.85em;
+    opacity: 0.35;
+    filter: grayscale(40%);
+  }
+
+  .regrow-ghost .regrow-count {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    min-width: 1.1em;
+    text-align: center;
+    background: var(--color-choco-dark, #4a2c1a);
+    color: white;
+    font-size: 0.55em;
+    line-height: 1.4;
+    border-radius: 999px;
+    padding: 0 0.3em;
   }
 
   .cell.preview {
