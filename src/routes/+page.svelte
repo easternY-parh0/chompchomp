@@ -44,6 +44,15 @@
           </a>
         </div>
 
+        <div class="menu-card explain-card">
+          <div class="card-icon">🧠</div>
+          <h2>필승 전략 파헤치기</h2>
+          <p>촘프 게임은 왜 항상 선공이 이길까요? 전략 도둑질 논증과 보드 판형별 100% 승리 공식을 시뮬레이션과 함께 수학적으로 알아봅니다.</p>
+          <a class="menu-btn explain-btn" href={resolve('/explain')}>
+            필승 공식 확인 →
+          </a>
+        </div>
+
         <div class="menu-card play-card">
           <div class="card-icon">⚔️</div>
           <h2>실전 게임 대결하기</h2>
@@ -77,7 +86,6 @@
   }
 
   .page {
-    /* 기존 코드의 초콜릿 색상 팔레트 완벽 유지 */
     --color-bg: #3d2314;
     --color-ink: #fff6e9;
     --color-choco: #6b4226;
@@ -91,7 +99,7 @@
     color: var(--color-ink);
     font-family: 'Noto Sans KR', system-ui, sans-serif;
     padding: 3rem 1.25rem 4rem;
-    max-width: 920px;
+    max-width: 1040px; /* 3카드가 여유롭게 들어가도록 max-width 상향 조정 */
     margin: 0 auto;
     box-sizing: border-box;
     min-height: 100vh;
@@ -133,7 +141,6 @@
     padding: 0 10px;
   }
 
-  /* 기존 코드의 텍스트 빛남 애니메이션 효과 적용 */
   .shiny-title::after {
     content: '';
     position: absolute;
@@ -169,21 +176,21 @@
     color: var(--color-gold);
   }
 
-  /* 메뉴 카드 그리드 */
+  /* 메뉴 카드 그리드 (3열 레이아웃으로 변경) */
   .menu-container {
     margin-top: 1rem;
   }
 
   .menu-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2rem;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
   }
 
   .menu-card {
     background: var(--color-card-bg);
     border-radius: 24px;
-    padding: 2.5rem 2rem;
+    padding: 2.5rem 1.5rem;
     text-align: center;
     box-shadow: 0 8px 0 rgba(0, 0, 0, 0.3);
     border: 1px solid rgba(255, 246, 233, 0.1);
@@ -204,18 +211,20 @@
   }
 
   .menu-card h2 {
-    font-size: 1.75rem;
+    font-size: 1.6rem;
     margin-bottom: 1rem;
     color: #fff;
     text-shadow: 1px 1px 0px var(--color-choco-dark);
+    word-break: keep-all;
   }
 
   .menu-card p {
     margin: 0 0 2rem;
-    font-size: 1rem;
+    font-size: 0.95rem;
     color: var(--color-milk);
     line-height: 1.6;
-    flex-grow: 1; /* 카드 높이가 달라도 버튼 위치를 하단으로 일치시킴 */
+    flex-grow: 1;
+    word-break: keep-all;
   }
 
   /* 공통 메뉴 버튼 스타일 */
@@ -229,11 +238,11 @@
     padding: 0.9rem 1.5rem;
     border-radius: 999px;
     font-weight: 700;
-    transition: background 0.2s, transform 0.1s;
+    transition: background 0.2s, transform 0.1s, color 0.2s;
     box-sizing: border-box;
   }
 
-  /* 규칙 버튼 (차분하고 달콤한 브라운/골드 매칭) */
+  /* 규칙 버튼 */
   .rules-btn {
     background: var(--color-choco);
     color: var(--color-ink);
@@ -244,7 +253,21 @@
     background: var(--color-choco-light);
   }
 
-  /* 실전 버튼 (돋보이는 메인 시그니처 골드 매칭) */
+  /* 필승 전략 버튼 (Deep Choco 기반 골드 포인트 스타일) */
+  .explain-btn {
+    background: var(--color-choco-dark);
+    color: var(--color-gold);
+    border: 2px solid var(--color-gold);
+    box-shadow: 0 5px 0 rgba(0, 0, 0, 0.4);
+    padding: 0.78rem 1.5rem; /* 보더 두께만큼 패딩 미세 조정 */
+  }
+
+  .explain-btn:hover {
+    background: var(--color-gold);
+    color: var(--color-choco-dark);
+  }
+
+  /* 실전 버튼 */
   .play-btn {
     background: var(--color-gold);
     color: var(--color-choco-dark);
@@ -294,11 +317,13 @@
     color: rgba(243, 233, 220, 0.4);
   }
 
-  /* 모바일 반응형 대응 */
-  @media (max-width: 640px) {
+  /* 태블릿 및 모바일 대응 */
+  @media (max-width: 860px) {
     .menu-grid {
-      grid-template-columns: 1fr;
+      grid-template-columns: 1fr; /* 세로 1열로 깔끔하게 떨어지도록 유도 */
       gap: 1.5rem;
+      max-width: 400px;
+      margin: 0 auto;
     }
 
     .menu-card {
