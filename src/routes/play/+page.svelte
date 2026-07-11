@@ -1,18 +1,20 @@
 <script lang="ts">
   import { resolve } from '$app/paths';
 
-  type Mode = {
-    id: string;
-    title: string;
-    englishTitle: string;
-    emoji: string;
-    tagline: string;
-    desc: string;
-    href: string;
-    color: string;
+  // 1. 객체 각각의 형태를 보장할 수 있도록 가벼운 인터페이스를 정의합니다.
+  type ModeItem = {
+    readonly id: string;
+    readonly title: string;
+    readonly englishTitle: string;
+    readonly emoji: string;
+    readonly tagline: string;
+    readonly desc: string;
+    readonly href: string; // 하위 리터럴 추론을 위해 유연하게 둡니다.
+    readonly color: string;
   };
 
-  const modes: Mode[] = [
+  // 2. 타입 명시(: Mode[])를 지우고, as const만 남겨 리터럴 주소를 온전히 보존합니다.
+  const modes = [
     {
       id: 'classic',
       title: '기본 모드',
@@ -33,7 +35,9 @@
       href: '/play/modified',
       color: '#2b1810'
     }
-  ];
+  ] as const satisfies readonly ModeItem[]; 
+  // 💡 satisfies 구문을 사용하면 내부 값들의 타입 안전성을 검사하면서도, 
+  // href의 정확한 주소 값('/play/classic' 등)을 손실 없이 유지해 줍니다!
 
   // 모바일 터치 기기 대응 상태 값
   let activeId = $state<string | null>(null);
@@ -62,7 +66,7 @@
   >
     {#each modes as mode (mode.id)}
       <a
-        href={mode.href}
+        href={resolve(mode.href)}
         class="split-pane {mode.id}"
         style:--pane-color={mode.color}
         onmouseenter={() => { if (!isTouchDevice()) activeId = mode.id; }}

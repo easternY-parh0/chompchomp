@@ -2,6 +2,7 @@
   import { fade, scale } from 'svelte/transition';
   import { onMount } from 'svelte';
   import { SvelteSet } from 'svelte/reactivity';
+  import { resolve } from '$app/paths';
   import type { BoardState, Pos, Quadrant, Shape, ModifierFlags } from '$lib/types';
   import { ALL_MODIFIER_KEYS, MODIFIER_INFO, NO_MODIFIERS } from '$lib/types';
   import { createBoard, commitMove, pickRandom, advanceRound } from '$lib/engine';
@@ -14,7 +15,7 @@
 
   let lives = $state(3);
   let boardsCleared = $state(0);
-  let activeModifiers = $state<SvelteSet<keyof ModifierFlags>>(new SvelteSet());
+  let activeModifiers = new SvelteSet<keyof ModifierFlags>();
   let phase = $state<Phase>('playing');
   let message = $state('');
   let draftOptions = $state<(keyof ModifierFlags)[]>([]);
@@ -148,7 +149,7 @@
   <p class="sr-only" role="status" aria-live="polite">{message}</p>
 
   <header class="game-header-bar">
-    <a class="exit-btn" href="/play">← 탈출하기</a>
+    <a class="exit-btn" href={resolve("/play")}>← 탈출하기</a>
     <div class="center-status">
       <span class="course-tag">{isTutorialTier ? '튜토리얼 코스' : '변형 모드'}</span>
       <h1 class="stage-indicator">

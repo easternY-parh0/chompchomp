@@ -126,7 +126,7 @@
   
   let miniHoverTarget = $state<Cell | null>(null);
   let isLoseState = $state(false);
-  let miniTimer: any = null; // 이제 setTimeout의 ID가 할당됩니다.
+  let miniTimer: ReturnType<typeof setTimeout> | null = null;
   let miniCycleStep = 0;
 
   let miniPreviewSet = $derived.by(() =>

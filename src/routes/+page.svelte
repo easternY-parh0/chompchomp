@@ -48,7 +48,7 @@
           <div class="card-icon">🧠</div>
           <h2>필승 전략 파헤치기</h2>
           <p>촘프 게임은 왜 항상 선공이 이길까요? 전략 도둑질 논증과 보드 판형별 100% 승리 공식을 시뮬레이션과 함께 수학적으로 알아봅니다.</p>
-          <a class="menu-btn explain-btn" href={resolve('/explain')}>
+          <a class="menu-btn explain-btn" href={resolve('/guide')}>
             필승 공식 확인 →
           </a>
         </div>
