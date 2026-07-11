@@ -18,6 +18,16 @@
       document.body.style.overflow = ''; // 스크롤 해제
     }
   }
+
+  // ★ [Svelte 5 Runes] 모달이 열릴 때마다 MathJax 수식 재렌더링 트리거
+  $effect(() => {
+    if (activeModal !== null && typeof window !== 'undefined' && (window as any).MathJax) {
+      // DOM이 완전히 업데이트된 후 MathJax 타이포그래피 프로세싱 진행
+      setTimeout(() => {
+        (window as any).MathJax.typesetPromise?.();
+      }, 50);
+    }
+  });
 </script>
 
 <svelte:head>
@@ -27,6 +37,20 @@
     href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Noto+Sans+KR:wght@400;500;700;900&display=swap"
     rel="stylesheet"
   />
+  
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['$$', '$$']],
+        processEscapes: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+      }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </svelte:head>
 
 <div class="page">
@@ -60,7 +84,7 @@
         <span class="card-emoji">📊</span>
         <h2>3. 보드 판형별 필승 공식 대백과</h2>
       </div>
-      <p class="card-preview">$1 \times n$, 정사각형, $2 \times n$ 보드판에서 사용하는 거울 대칭 알고리즘.</p>
+      <p class="card-preview">\(1 \times n\), 정사각형, \(2 \times n\) 보드판에서 사용하는 거울 대칭 알고리즘.</p>
       <span class="click-tip">풀스크린으로 읽기 ➔</span>
     </button>
   </main>
@@ -95,11 +119,11 @@
             <h3>📜 촘프의 역사: 약수 게임에서 초콜릿으로</h3>
             <p>
               촘프 게임의 수학적 모태는 1952년 네덜란드의 수학자 <b>프레드 슈(Fred Schuh)</b>가 고안한 <b>'약수 게임(Divisor Game)'</b>으로 거슬러 올라갑니다. 
-              특정 자연수 $N$을 정해둔 뒤, 플레이어들이 교대로 약수 중 하나를 선택하고 그 수와 배수들을 지워나가며 마지막에 '1'을 고르는 사람이 지는 대수적 규칙이었습니다.
+              특정 자연수 \(N\)을 정해둔 뒤, 플레이어들이 교대로 약수 중 하나를 선택하고 그 수와 배수들을 지워나가며 마지막에 '1'을 고르는 사람이 지는 대수적 규칙이었습니다.
             </p>
             
             <div class="inline-board-box">
-              <span class="board-caption">[도표 1-1] 프레드 슈의 초기 1차원 약수 보드 기하학적 모사 ($1 \times 5$)</span>
+              <span class="board-caption">[도표 1-1] 프레드 슈의 초기 1차원 약수 보드 기하학적 모사 (\(1 \times 5\))</span>
               <div class="guide-board layout-1xn">
                 <div class="guide-piece poison-style"><span class="skull-icon">☠️ (1)</span></div>
                 <div class="guide-piece">2</div>
@@ -115,7 +139,7 @@
             </p>
 
             <div class="inline-board-box">
-              <span class="board-caption">[도표 1-2] 데이비드 게일이 정립한 2차원 초콜릿 격자 보드 ($3 \times 3$)</span>
+              <span class="board-caption">[도표 1-2] 데이비드 게일이 정립한 2차원 초콜릿 격자 보드 (\(3 \times 3\))</span>
               <div class="guide-board layout-3x3">
                 <div class="guide-piece poison-style"><span class="skull-icon">☠️</span></div>
                 <div class="guide-piece"><div class="indent"></div></div>
@@ -145,11 +169,11 @@
           <div class="article-text">
             <h3>💡 비구성적 존재 증명: "답은 있지만 알려주지는 않는다"</h3>
             <p>
-              전략 도둑질 논증은 크기가 $1 \times 1$보다 큰 모든 사각형 촘프 게임 보드에서 <b>"무조건 선공이 승리한다"</b>는 정리를 유도해내는 수학적 귀류법 체계입니다. 수학에서 말하는 대표적인 비구성적 증명(Non-constructive proof)으로, 승리의 존재성은 확증하지만 정작 첫 수로 어디를 두어야 하는지는 비밀에 붙입니다.
+              전략 도둑질 논증은 크기가 \(1 \times 1\)보다 큰 모든 사각형 촘프 게임 보드에서 <b>"무조건 선공이 승리한다"</b>는 정리를 유도해내는 수학적 귀류법 체계입니다. 수학에서 말하는 대표적인 비구성적 증명(Non-constructive proof)으로, 승리의 존재성은 확증하지만 정작 첫 수로 어디를 두어야 하는지는 비밀에 붙입니다.
             </p>
 
             <div class="info-callout">
-              <p><b>[귀류법적 가정]</b> 후공에게 판을 어떻게 받아도 무조건 승리하는 절대적 마법의 '필승 전략 S'가 존재한다고 귀류법 가정을 세워봅시다.</p>
+              <p><b>[귀류법적 가정]</b> 후공에게 판을 어떻게 받아도 무조건 승리하는 절대적 마법의 '필승 전략 \(S\)'가 존재한다고 귀류법 가정을 세워봅시다.</p>
             </div>
 
             <p><b>스텝 1 (선공의 유인책):</b> 선공은 첫 차례에 보드의 맨 오른쪽 아래 맨 구석에 위치한 조각<b>(가장 영향력이 적은 단 1칸)</b>만 톡 깨물어 먹고 후공에게 보드를 넘깁니다.</p>
@@ -169,10 +193,10 @@
               </div>
             </div>
 
-            <p><b>스텝 2 (후공의 응수):</b> 후공은 자신이 가지고 있다고 가정한 필승 전략 S의 매뉴얼을 꺼내어, 현재 판에서 가장 완벽한 킬러 좌표인 특정 포인트 <b>🎯</b>를 타격하여 격자를 파괴할 것입니다.</p>
+            <p><b>스텝 2 (후공의 응수):</b> 후공은 자신이 가지고 있다고 가정한 필승 전략 \(S\)의 매뉴얼을 꺼내어, 현재 판에서 가장 완벽한 킬러 좌표인 특정 포인트 <b>🎯</b>를 타격하여 격자를 파괴할 것입니다.</p>
 
             <div class="inline-board-box">
-              <span class="board-caption">② 후공이 자신의 필승 전략 S를 적용해 대응 사격한 배치 (🎯 위치)</span>
+              <span class="board-caption">② 후공이 자신의 필승 전략 \(S\)를 적용해 대응 사격한 배치 (🎯 위치)</span>
               <div class="guide-board layout-3x3">
                 <div class="guide-piece poison-style"><span class="skull-icon">☠️</span></div>
                 <div class="guide-piece"><div class="indent"></div></div>
@@ -186,7 +210,7 @@
               </div>
             </div>
 
-            <p><b>스텝 3 (논리적 모순 발생):</b> 여기서 수학적 뇌정지가 찾아옵니다. 후공이 🎯를 먹어서 만들어낸 그 이상적인 필승의 배치 상태는, 사실 <b>선공이 첫 번째 차례에 애초부터 🎯 조각을 바로 선택했어도 똑같이 만들어낼 수 있었던 형태</b>입니다.</p>
+            <p><b>스텝 3 (논리적 모순 발생):</b> 여기서 수학적 모순이 찾아옵니다. 후공이 🎯를 먹어서 만들어낸 그 이상적인 필승의 배치 상태는, 사실 <b>선공이 첫 번째 차례에 애초부터 🎯 조각을 바로 선택했어도 똑같이 만들어낼 수 있었던 형태</b>입니다.</p>
 
             <div class="inline-board-box">
               <span class="board-caption">③ 선공이 애초에 첫 수로 ②번 모양을 가로채서 선점해 버린 형태</span>
@@ -204,7 +228,7 @@
             </div>
 
             <p class="summary-highlight">
-              결론적으로 후공이 이기기 위해 준비한 모든 마법의 패는 선공이 첫 턴에 '도둑질(Stealing)'해서 똑같이 재현해 버릴 수 있습니다. 따라서 "후공에게 필승 전략이 있다"는 가정은 모순을 일으켜 파괴되며, <b>촘프 게임은 항상 선공의 필승만이 존재함</b>이 증명됩니다.
+              결론적으로 후공이 이기기 위해 준비한 모든 마법의 패는 선공이 첫 턴에 '전략 도둑질(Strategy Stealing)'을 통해 똑같이 재현해 버릴 수 있습니다. 따라서 "후공에게 필승 전략이 있다"는 가정은 모순을 일으켜 파괴되며, <b>촘프 게임은 항상 선공의 필승만이 존재함</b>이 증명됩니다.
             </p>
           </div>
         {/if}
@@ -216,8 +240,8 @@
             <p class="intro-lead">귀류법적 존재 증명을 넘어, 특정한 직사각형 및 규격을 가진 필드에서는 기계적으로 대응하여 무조건 이길 수 있는 마스터 알고리즘이 정립되어 있습니다.</p>
             
             <div class="rule-card-item">
-              <h3>⭐ 유형 A. 가로형 한 줄 보드 ($1 \times n$)</h3>
-              <p><b>승리 알고리즘:</b> 난이도가 가장 낮습니다. 선공은 첫 턴에 독약 바로 우측 옆 칸(🎯)을 씹어 삼킵니다. 이 한 수로 독약을 제외한 우측 라인의 모든 초콜릿이 단 한 번에 증발하게 되며, 후공은 강제로 독약을 삼키고 즉사하게 됩니다.</p>
+              <h3>⭐ 유형 A. 가로형 한 줄 보드 (\(1 \times n\))</h3>
+              <p><b>승리 알고리즘:</b> 난이도가 가장 낮습니다. 선공은 첫 턴에 독약 바로 우측 옆 칸(🎯)을 선택합니다. 이 한 수로 독약을 제외한 우측 라인의 모든 초콜릿이 단 한 번에 증발하게 되며, 후공은 강제로 독약을 삼키고 즉사하게 됩니다.</p>
               
               <div class="inline-board-box-mini">
                 <div class="guide-board layout-1xn">
@@ -231,8 +255,8 @@
             </div>
 
             <div class="rule-card-item">
-              <h3>⭐ 유형 B. 정사각형 보드 ($n \times n$)</h3>
-              <p><b>승리 알고리즘 [대각선 거울 복사]:</b> 선공은 첫 수로 메인 대각선 대칭점인 <b>(2, 2) 위치를 정밀 타격</b>해 우측 하단 덩어리를 소거합니다. 그러면 독약을 중심으로 가로축과 세로축의 길이가 똑같은 완벽한 대칭형 'L'자 보드가 남습니다. 이후 후공이 가로를 $k$칸 깎아 먹으면 선공은 세로를 똑같이 $k$칸 깎으며 대칭 매칭을 복사 유지하면 백전백승합니다.</p>
+              <h3>⭐ 유형 B. 정사각형 보드 (\(n \times n\))</h3>
+              <p><b>승리 알고리즘 [대각선 거울 복사]:</b> 선공은 첫 수로 메인 대각선 대칭점인 <b>(2, 2) 위치를 정밀 타격</b>해 우측 하단 덩어리를 소거합니다. 그러면 독약을 중심으로 가로축과 세로축의 길이가 똑같은 완벽한 대칭형 'L'자 보드가 남습니다. 이후 후공이 가로를 \(k\)칸 깎아 먹으면 선공은 세로를 똑같이 \(k\)칸 깎으며 대칭 매칭을 복사 유지하면 백전백승합니다.</p>
               
               <div class="inline-board-box-mini">
                 <div class="guide-board layout-3x3">
@@ -251,7 +275,7 @@
             </div>
 
             <div class="rule-card-item">
-              <h3>⭐ 유형 C. 2열 격자 보드 ($2 \times n$)</h3>
+              <h3>⭐ 유형 C. 2열 격자 보드 (\(2 \times n\))</h3>
               <p><b>승리 알고리즘 [시차 1칸 마진 유지형]:</b> 선공은 아래쪽 행의 가장 우측 조각을 끊어내어 <b>'첫 번째 행의 잔존 칸수가 두 번째 행의 잔존 칸수보다 무조건 항상 1개 더 많은 상태'</b>를 요새처럼 유지합니다. 상대방이 위를 깎아 균형을 맞추려 하거나 아래를 더 깎으면, 다음 선공 턴에 이 1칸 차이 마진 공식이 복구되도록 대응 계산을 해주는 것으로 우승 궤도를 사수할 수 있습니다.</p>
               
               <div class="inline-board-box-mini">
@@ -374,22 +398,19 @@
   .card-preview { color: var(--color-milk); opacity: 0.8; margin: 0 0 1rem 0; font-size: 0.95rem; }
   .click-tip { font-family: 'Do Hyeon', sans-serif; color: var(--color-gold); font-size: 0.95rem; }
 
-  /* ==========================================
-     [교정 핵심] 몰입형 풀스크린 뷰어 스타일 컴포넌트
-     ========================================== */
+  /* 몰입형 풀스크린 뷰어 스타일 */
   .fullscreen-viewer {
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: #1e0f08; /* 완전히 독립된 어두운 브라운 배경으로 글자 가독성 100% 보장 */
+    background: #1e0f08;
     z-index: 10000;
     display: flex;
     flex-direction: column;
   }
 
-  /* 풀스크린 상단 고정 네비게이션바 */
   .fullscreen-navbar {
     display: flex;
     justify-content: space-between;
@@ -424,7 +445,6 @@
     background: var(--color-choco);
   }
 
-  /* 본문 문서 스크롤바 바인딩 */
   .fullscreen-body {
     flex: 1;
     overflow-y: auto;
@@ -432,7 +452,6 @@
     box-sizing: border-box;
   }
 
-  /* 실제 책/도큐먼트 형태의 너비 제한 중앙 정렬 컨테이너 */
   .article-container {
     max-width: 680px;
     margin: 0 auto;
@@ -447,16 +466,15 @@
     text-shadow: 2px 2px 0px rgba(0,0,0,0.4);
   }
 
-  /* 타이포그래피 정밀 가독성 교정 사양 */
   .article-text {
     font-size: 1.08rem;
     line-height: 1.85;
-    color: #ffffff; /* 글자색을 완전한 화이트로 고정하여 대비 강도 극대화 */
+    color: #ffffff;
   }
 
   .article-text p {
     margin: 0 0 1.5rem 0;
-    color: #f7ede2; /* 살짝 따뜻한 소프트 화이트 배정 */
+    color: #f7ede2;
   }
 
   .article-text h3 {
@@ -465,6 +483,14 @@
     margin: 2.5rem 0 1rem 0;
     border-left: 4px solid var(--color-gold);
     padding-left: 0.75rem;
+  }
+
+  /* MathJax LaTeX 수식 전용 테두리 여백 규격 수정 */
+  :global(.mjx-chtml) {
+    color: var(--color-gold) !important;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 2px 6px;
+    border-radius: 4px;
   }
 
   .info-callout {
@@ -496,9 +522,7 @@
   .rule-card-item h3 { color: #ffffff; margin-bottom: 0.75rem; font-size: 1.25rem; }
   .rule-card-item p { color: #e1d3c7; font-size: 1rem; margin: 0; }
 
-  /* ==========================================
-     문맥 중간 유동형 인터랙티브 초콜릿 그리드 
-     ========================================== */
+  /* 그리드 관련 */
   .inline-board-box {
     background: rgba(0, 0, 0, 0.4);
     padding: 1.5rem;
@@ -533,7 +557,6 @@
     line-height: 1.4;
   }
 
-  /* 격자 제어 프레임 */
   .guide-board {
     display: grid;
     gap: 6px;
@@ -571,7 +594,6 @@
   .indent { width: 35%; height: 35%; border: 1px solid rgba(0,0,0,0.15); border-radius: 2px; }
   .skull-icon { font-size: 1rem; }
 
-  /* 푸터 제어 */
   .explain-footer {
     margin-top: auto;
     padding-top: 4rem;
