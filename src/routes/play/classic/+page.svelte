@@ -2,77 +2,15 @@
   import { fade, fly } from 'svelte/transition';
   import { resolve } from '$app/paths';
   import { onMount } from 'svelte';
-
-  // 각 라운드(판)의 정보를 담는 타입
-  interface GameRound {
-    roundNumber: number;
-    rows: number;
-    cols: number;
-    sizeText: string;
-  }
-
-  // 하나의 초콜릿(코스)을 정의하는 타입
-  interface GameCourse {
-    id: '1' | '2' | '3'; // SvelteKit 라우트 타입 에러 방지를 위해 리터럴로 엄격하게 고정
-    title: string;       // 코스 이름 (설명 1)
-    difficulty: number;  // 코스 난이도 (설명 1)
-    description: string; // 코스 설명 (설명 2)
-    flavorText: string;  // 플레이버 텍스트 (설명 2)
-    chocoColor: string;  
-    labelColor: string;  
-    rounds: GameRound[]; // 이 코스에 배정된 고정 판 3개
-  }
-
-  // 각 코스별 3개의 판 구조 세팅
-  const courses: GameCourse[] = [
-    {
-      id: '1',
-      title: '밀크 가나슈 코스',
-      difficulty: 1,
-      description: '촘프의 기초부터 다지는 입문 코스입니다. 점진적으로 크기가 커지는 3개의 판을 정복하며 필승 전략의 감을 잡으세요.',
-      flavorText: '“달콤한 밀크 초코와 함께 가볍게 워밍업!”',
-      chocoColor: '#8c5a3c',
-      labelColor: 'linear-gradient(135deg, #a26a47, #734326)',
-      rounds: [
-        { roundNumber: 1, rows: 2, cols: 3, sizeText: '2 × 3' },
-        { roundNumber: 2, rows: 3, cols: 3, sizeText: '3 × 3' },
-        { roundNumber: 3, rows: 3, cols: 4, sizeText: '3 × 4' }
-      ]
-    },
-    {
-      id: '2',
-      title: '다크 카카오 코스',
-      difficulty: 3,
-      description: '본격적인 대칭성과 수학적 균형이 요구되는 보통 난이도 코스입니다. 한 치의 양보도 없는 3연속 심리전이 펼쳐집니다.',
-      flavorText: '“카카오 72%, 가로세로의 균형을 무너뜨려라.”',
-      chocoColor: '#4a2c1a',
-      labelColor: 'linear-gradient(135deg, #5c3820, #341e14)',
-      rounds: [
-        { roundNumber: 1, rows: 4, cols: 4, sizeText: '4 × 4' },
-        { roundNumber: 2, rows: 3, cols: 5, sizeText: '3 × 5' },
-        { roundNumber: 3, rows: 4, cols: 6, sizeText: '4 × 6' }
-      ]
-    },
-    {
-      id: '3',
-      title: '블랙 가드너 코스',
-      difficulty: 5,
-      description: '수학자 데이비드 게일의 난제를 마스터하는 전문가 코스입니다. 거대한 경우의 수 속에서 완벽한 선공의 필승 루트를 증명하세요.',
-      flavorText: '“마지막 독약 조각을 남기기 위한 치밀한 3단계 설계.”',
-      chocoColor: '#2b1810',
-      labelColor: 'linear-gradient(135deg, #3d2314, #1f100a)',
-      rounds: [
-        { roundNumber: 1, rows: 5, cols: 5, sizeText: '5 × 5' },
-        { roundNumber: 2, rows: 4, cols: 7, sizeText: '4 × 7' },
-        { roundNumber: 3, rows: 5, cols: 8, sizeText: '5 × 8' }
-      ]
-    }
-  ];
+  
+  // 외부로 분리한 데이터 및 타입 불러오기
+  import { coursesData as courses } from '$lib/data/courses';
 
   let ready = $state(false);
   let currentIndex = $state(0);
   let direction = $state(1);
   
+  // Svelte 5 $derived 룬을 활용해 현재 선택된 코스 자동 추적
   const currentCourse = $derived(courses[currentIndex]);
 
   onMount(() => {
@@ -81,6 +19,7 @@
 
   function nextMode() {
     direction = 1;
+    // 데이터 개수가 늘어나거나 줄어들어도 변동된 courses.length에 맞춰 유연하게 순환함
     currentIndex = (currentIndex + 1) % courses.length;
   }
 
