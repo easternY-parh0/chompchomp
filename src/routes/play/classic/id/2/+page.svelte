@@ -4,6 +4,7 @@
   import { onMount } from 'svelte';
   
   import { coursesData } from '$lib/data/courses';
+  import { requestClassicMove } from '$lib/aiBrowser';
 
   // 현재 플레이할 코스 설정 (예시: 1번 코스)
   // SvelteKit 라우팅 환경 연동 시 $page.params.id 등으로 가볍게 변경 가능합니다.
@@ -78,8 +79,18 @@
     }
   }
 
-  function triggerAiTurn() {
+  async function triggerAiTurn() {
     if (gameOver) return;
+
+    try {
+      // 브라우저 사이드 정확 미제르 minimax (난이도 = 코스 difficulty -> epsilon)
+      const move = await requestClassicMove(grid, currentCourse.difficulty);
+      if (gameOver) return;
+      chomp(move.anchor.r, move.anchor.c, 'AI');
+      return;
+    } catch (e) {
+      console.warn('classic AI 실패 — 랜덤 폴백', e);
+    }
 
     let validMoves: {r: number, c: number}[] = [];
     for (let r = 0; r < currentRound.rows; r++) {

@@ -7,6 +7,7 @@
   import { ALL_MODIFIER_KEYS, MODIFIER_INFO, NO_MODIFIERS } from '$lib/types';
   import { createBoard, commitMove, pickRandom, advanceRound } from '$lib/engine';
   import { chooseAiMove } from '$lib/ai';
+  import { requestModifiedMove, warmupModels } from '$lib/aiBrowser';
   import ChompBoard from '$lib/components/ChompBoard.svelte';
 
   type Phase = 'playing' | 'ai-thinking' | 'life-lost' | 'modifier-draft' | 'game-over';
@@ -61,6 +62,7 @@
 
   onMount(() => {
     startNewBoard(1);
+    warmupModels(); // ONNX 모델 미리 로드 (첫 AI 수 지연 제거)
   });
 
   function handleHumanMove(anchor: Pos, quadrant: Quadrant) {
@@ -80,8 +82,15 @@
     setTimeout(runAiTurn, 500 + Math.random() * 500);
   }
 
-  function runAiTurn() {
-    const move = chooseAiMove(board, boardsCleared);
+  async function runAiTurn() {
+    let move;
+    try {
+      // 브라우저 사이드 ONNX 신경망 (난이도별 chomp_1k/10k/50k/200k.onnx)
+      move = await requestModifiedMove(board, boardsCleared, activeModifiers);
+    } catch (e) {
+      console.warn('ONNX AI 실패 — 로컬 휴리스틱 폴백', e);
+      move = chooseAiMove(board, boardsCleared);
+    }
     const result = commitMove(board, move.anchor, move.quadrant);
     lastAiRemoved = result.removed;
 
