@@ -23,7 +23,7 @@
   let lastAiRemoved = $state<Pos[]>([]);
 
   let board = $state<BoardState>(
-    createBoard({ rows: 4, cols: 6, shape: 'rect', isTutorial: true, modifiers: NO_MODIFIERS })
+    createBoard({ rows: 2, cols: 4, shape: 'rect', isTutorial: true, modifiers: NO_MODIFIERS })
   );
 
   let currentTier = $derived(boardsCleared + 1);
@@ -51,8 +51,14 @@
     };
   }
 
+  const TUTORIAL_SIZES: Record<number, { rows: number; cols: number }> = {
+    1: { rows: 2, cols: 4 },
+    2: { rows: 4, cols: 4 },
+    3: { rows: 4, cols: 6 }
+  };
+
   function boardSizeForTier(tier: number): { rows: number; cols: number } {
-    if (tier <= 3) return { rows: 4, cols: 6 };
+    if (tier <= 3) return TUTORIAL_SIZES[tier] ?? TUTORIAL_SIZES[1];
     const step = Math.floor((tier - 4) / 2);
     return { rows: Math.min(4 + step, 9), cols: Math.min(6 + step, 10) };
   }
