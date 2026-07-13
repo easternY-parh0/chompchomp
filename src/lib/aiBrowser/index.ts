@@ -57,9 +57,12 @@ function modifiersFromSet(active: Set<keyof ModifierFlags>): ModifierFlags {
 export async function requestModifiedMove(
   board: BoardState,
   boardsCleared: number,
-  activeModifiers: Set<keyof ModifierFlags>
+  activeModifiers: Set<keyof ModifierFlags>,
+  difficultyOverride?: number
 ): Promise<AiMove> {
-  const { url, temp } = MODIFIED_MODELS[difficultyFor(board, boardsCleared)];
+  const diff = difficultyOverride ?? difficultyFor(board, boardsCleared);
+  const clamped = Math.max(0, Math.min(MODIFIED_MODELS.length - 1, diff));
+  const { url, temp } = MODIFIED_MODELS[clamped];
   const modifiers = modifiersFromSet(activeModifiers);
   const moves = listLegalMoves(board);
   if (moves.length === 0) throw new Error('no legal moves');

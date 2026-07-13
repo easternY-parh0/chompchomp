@@ -31,6 +31,15 @@
   let isAiTurn = $derived(phase === 'ai-thinking');
   const lifeSlots = [0, 1, 2];
 
+  // AI 난이도 선택 (상단바 드롭박스). 판 크기·모디파이어는 진행대로, AI 강도만 이 값으로.
+  const AI_LEVELS = [
+    { value: 0, label: '매우 쉬움' },
+    { value: 1, label: '쉬움' },
+    { value: 2, label: '보통' },
+    { value: 3, label: '어려움' }
+  ];
+  let aiDifficulty = $state(2); // 기본: 보통
+
   function modifierFlagsFromActive(active: Set<keyof ModifierFlags>): ModifierFlags {
     return {
       doublePoison: active.has('doublePoison'),
@@ -86,7 +95,7 @@
     let move;
     try {
       // 브라우저 사이드 ONNX 신경망 (난이도별 chomp_1k/10k/50k/200k.onnx)
-      move = await requestModifiedMove(board, boardsCleared, activeModifiers);
+      move = await requestModifiedMove(board, boardsCleared, activeModifiers, aiDifficulty);
     } catch (e) {
       console.warn('ONNX AI 실패 — 로컬 휴리스틱 폴백', e);
       move = chooseAiMove(board, boardsCleared);
@@ -175,6 +184,14 @@
   </header>
 
   <div class="stat-row">
+    <label class="ai-level">
+      <span class="ai-level-label">AI 난이도</span>
+      <select bind:value={aiDifficulty} aria-label="AI 난이도 선택">
+        {#each AI_LEVELS as lv (lv.value)}
+          <option value={lv.value}>{lv.label}</option>
+        {/each}
+      </select>
+    </label>
     <div class="lives" aria-label="남은 목숨">
       {#each lifeSlots as i (i)}
         <span class="heart">{i < lives ? '❤️' : '🖤'}</span>
@@ -347,6 +364,34 @@
     display: flex;
     align-items: center;
     gap: 1.25rem;
+  }
+
+  .ai-level {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-right: auto;
+  }
+  .ai-level-label {
+    font-size: 0.75rem;
+    color: rgba(255, 246, 233, 0.6);
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+  .ai-level select {
+    font-family: 'Do Hyeon', 'Noto Sans KR', sans-serif;
+    font-size: 0.95rem;
+    color: #1a0f0a;
+    background: #ffb703;
+    border: none;
+    border-radius: 8px;
+    padding: 0.35rem 0.6rem;
+    cursor: pointer;
+    box-shadow: 0 3px 8px rgba(255, 183, 3, 0.2);
+  }
+  .ai-level select:focus-visible {
+    outline: 2px solid #fff6e9;
+    outline-offset: 2px;
   }
 
   .lives {
