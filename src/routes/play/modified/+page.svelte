@@ -21,6 +21,7 @@
   let message = $state('');
   let draftOptions = $state<(keyof ModifierFlags)[]>([]);
   let lastAiRemoved = $state<Pos[]>([]);
+  let lastAiMove = $state<{ anchor: Pos; quadrant: Quadrant } | null>(null);
   
   // 💡 본게임 돌입 폭죽 이펙트 트리거용 상태 추가
   let isCelebration = $state(false); 
@@ -72,6 +73,7 @@
 
     board = createBoard({ rows, cols, shape, isTutorial: tutorial, modifiers });
     lastAiRemoved = [];
+    lastAiMove = null;
 
     // 💡 4번째 판(본게임) 진입 시 폭죽 타이머 가동
     if (tier === 4) {
@@ -117,6 +119,7 @@
       console.warn('ONNX AI 실패 — 로컬 휴리스틱 폴백', e);
       move = chooseAiMove(board, boardsCleared);
     }
+    lastAiMove = move;
     const result = commitMove(board, move.anchor, move.quadrant);
     lastAiRemoved = result.removed;
 
@@ -231,6 +234,7 @@
       {board}
       disabled={phase !== 'playing'}
       lastRemoved={lastAiRemoved}
+      aiMove={lastAiMove}
       onMove={handleHumanMove}
     />
   </main>

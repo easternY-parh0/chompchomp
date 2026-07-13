@@ -8,11 +8,13 @@
     board,
     disabled = false,
     lastRemoved = [],
+    aiMove = null,
     onMove
   }: {
     board: BoardState;
     disabled?: boolean;
     lastRemoved?: Pos[];
+    aiMove?: { anchor: Pos; quadrant: Quadrant } | null;
     onMove: (anchor: Pos, quadrant: Quadrant) => void;
   } = $props();
 
@@ -26,6 +28,14 @@
     { quadrant: 'se', arrow: '↘', label: '오른쪽 아래' }
   ];
 
+  function directionArrow(q: Quadrant): string {
+    return DIRECTIONS.find((d) => d.quadrant === q)?.arrow ?? '↘';
+  }
+
+  function directionLabel(q: Quadrant): string {
+    return DIRECTIONS.find((d) => d.quadrant === q)?.label ?? '';
+  }
+
   let selectedAnchor = $state<Pos | null>(null);
   let selectedQuadrant = $state<Quadrant>('se');
 
@@ -36,6 +46,21 @@
   });
 
   let lastRemovedSet = $derived(new SvelteSet(lastRemoved.map((p) => `${p.r}-${p.c}`)));
+
+  // AI가 실제로 "먹은"(죽어있는) 칸만 X 마커 대상. 재생 예정 칸은 별도 ghost UI가 이미 있으므로 제외.
+  let eatenMarks = $derived(
+    lastRemoved.filter((p) => {
+      const t = board.tiles[p.r]?.[p.c];
+      return t && !t.alive && !(t.isRegrowth && t.regrowAt !== null);
+    })
+  );
+
+  // 💡 그리드 트랙에 전혀 관여하지 않는 절대좌표(%) 계산. rows/cols 어떤 값이어도 항상 안전.
+  function cellCenterPercent(r: number, c: number): { left: number; top: number } {
+    const left = ((c + 0.5) / board.cols) * 100;
+    const top = ((r + 0.5) / board.rows) * 100;
+    return { left, top };
+  }
 
   function selectCell(pos: Pos) {
     if (disabled) return;
@@ -141,10 +166,32 @@
           {/if}
         {/each}
       {/each}
+
+      <!-- 💡 그리드 트랙과 완전히 분리된 절대좌표 오버레이 레이어. 레이아웃에 영향 없음. -->
+      <div class="marker-layer" aria-hidden="true">
+        {#each eatenMarks as p (`eat-${p.r}-${p.c}`)}
+          {@const pos = cellCenterPercent(p.r, p.c)}
+          <span class="eaten-mark-x" style="left:{pos.left}%; top:{pos.top}%;">✕</span>
+        {/each}
+
+        {#if aiMove}
+          {@const pos = cellCenterPercent(aiMove.anchor.r, aiMove.anchor.c)}
+          <span class="ai-move-badge" style="left:{pos.left}%; top:{pos.top}%;">
+            {directionArrow(aiMove.quadrant)}
+          </span>
+        {/if}
+      </div>
     </div>
   </div>
 
   <div class="control-bar">
+    {#if aiMove}
+      <p class="ai-move-caption">
+        🤖 AI: {aiMove.anchor.r + 1}행 {aiMove.anchor.c + 1}열 · {directionLabel(aiMove.quadrant)}
+        {directionArrow(aiMove.quadrant)}
+      </p>
+    {/if}
+
     <p class="control-hint" class:selected-hint={selectedAnchor !== null}>
       {selectedAnchor ? selectedLabel(selectedAnchor) : '🍫 먹고 싶은 조각을 하나 골라보세요'}
     </p>
@@ -182,30 +229,24 @@
 <style>
   .chomp-board-wrap {
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1.25rem;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 1.5rem;
     width: 100%;
   }
 
   /* 💡 대형 보드가 와도 깨지지 않고 가로 스크롤을 지원하는 뷰포트 레이어 */
   .board-viewport {
-    width: 100%;
-    max-width: 100vw;
+    flex: 0 1 auto;
+    max-width: 100%;
     overflow-x: auto;
     overflow-y: hidden;
     display: flex;
-    justify-content: flex-start; /* 스크롤 가능 시 왼쪽 정렬 유지 */
-    padding: 12px 1rem;
+    justify-content: flex-start;
+    padding: 12px 0;
     box-sizing: border-box;
     -webkit-overflow-scrolling: touch;
-  }
-
-  /* 화면이 넓을 때는 중앙 정렬 */
-  @media (min-width: 600px) {
-    .board-viewport {
-      justify-content: center;
-    }
   }
 
   /* 💡 너비/높이를 고정하는 대신 조각 수에 따라 자동으로 팽창하도록 변경 */
@@ -222,8 +263,8 @@
     width: max-content;
     height: max-content;
     box-sizing: border-box;
-    margin: 0 auto;
     flex-shrink: 0;
+    position: relative;
   }
 
   .hole {
@@ -368,6 +409,70 @@
     padding: 0 0.3em;
   }
 
+  /* 💡 그리드 트랙과 완전히 분리된 절대좌표 오버레이. width/height 100%로 chocolate-board 위에만 얹힘 */
+  .marker-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  .eaten-mark-x {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    font-size: 0.7rem;
+    line-height: 1;
+    color: #ffb4a8;
+    background: rgba(20, 10, 5, 0.6);
+    border-radius: 999px;
+    animation: eatenFade 1.1s ease forwards;
+  }
+
+  @keyframes eatenFade {
+    0% {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.7);
+    }
+  }
+
+  /* 💡 AI가 고른 칸 중심에 뜨는 작은 방향 뱃지 */
+  .ai-move-badge {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    font-size: 0.7rem;
+    line-height: 1;
+    color: #1a0f0a;
+    background: #ffb703;
+    border-radius: 999px;
+    box-shadow: 0 0 6px rgba(255, 183, 3, 0.8);
+    animation: badgePulse 1s ease-in-out infinite;
+  }
+
+  @keyframes badgePulse {
+    0%, 100% {
+      opacity: 0.75;
+      transform: translate(-50%, -50%) scale(0.95);
+    }
+    50% {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1.1);
+    }
+  }
+
   .control-bar {
     background: rgba(82, 50, 28, 0.25);
     border: 1px solid rgba(255, 246, 233, 0.08);
@@ -376,44 +481,52 @@
     padding: 1.1rem 1.5rem;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
     gap: 0.75rem;
-    width: 100%;
-    max-width: 560px;
-    min-height: 92px;
-    justify-content: center;
+    flex: 0 1 300px;
+    min-width: 240px;
     box-sizing: border-box;
+  }
+
+  .ai-move-caption {
+    margin: 0;
+    font-size: 0.78rem;
+    color: #ffb703;
+    background: rgba(255, 183, 3, 0.08);
+    border: 1px solid rgba(255, 183, 3, 0.22);
+    border-radius: 8px;
+    padding: 0.4rem 0.6rem;
+    text-align: center;
+    line-height: 1.4;
   }
 
   .control-body {
     display: flex;
-    flex-direction: row;
-    align-items: stretch;
-    gap: 1.25rem;
+    flex-direction: column;
+    gap: 1rem;
     width: 100%;
   }
 
   .control-body.tutorial-body {
-    justify-content: center;
+    align-items: center;
   }
 
   .direction-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 0.5rem;
-    flex: 1 1 55%;
+    width: 100%;
   }
 
   .action-col {
     display: flex;
     flex-direction: column;
-    justify-content: center;
     gap: 0.6rem;
-    flex: 1 1 45%;
+    width: 100%;
   }
 
   .control-body.tutorial-body .action-col {
-    flex: 0 1 260px;
+    max-width: 260px;
   }
 
   .control-hint {
@@ -505,9 +618,32 @@
     background: #22c55e;
   }
 
+  /* 💡 좁은 화면에서는 보드 위 / 컨트롤 아래로 스택 */
+  @media (max-width: 860px) {
+    .chomp-board-wrap {
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .board-viewport {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .control-bar {
+      width: 100%;
+      max-width: 560px;
+      flex: 0 1 auto;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .choco-piece {
       transition: none;
+      animation: none;
+    }
+    .eaten-mark-x,
+    .ai-move-badge {
       animation: none;
     }
   }
