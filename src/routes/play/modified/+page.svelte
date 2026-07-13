@@ -21,6 +21,9 @@
   let message = $state('');
   let draftOptions = $state<(keyof ModifierFlags)[]>([]);
   let lastAiRemoved = $state<Pos[]>([]);
+  
+  // 💡 본게임 돌입 폭죽 이펙트 트리거용 상태 추가
+  let isCelebration = $state(false); 
 
   let board = $state<BoardState>(
     createBoard({ rows: 2, cols: 4, shape: 'rect', isTutorial: true, modifiers: NO_MODIFIERS })
@@ -31,14 +34,12 @@
   let isAiTurn = $derived(phase === 'ai-thinking');
   const lifeSlots = [0, 1, 2];
 
-  // AI 난이도 선택 (상단바 드롭박스). 판 크기·모디파이어는 진행대로, AI 강도만 이 값으로.
-  // MODIFIED_MODELS(실제 추론에 쓰는 모델/temperature)에서 그대로 라벨을 뽑아 표기와 실제 동작이 어긋나지 않게 한다.
   const AI_LEVEL_NAMES = ['매우 쉬움', '쉬움', '보통', '어려움'];
   const AI_LEVELS = MODIFIED_MODELS.map((m, i) => ({
     value: i,
     label: `${AI_LEVEL_NAMES[i] ?? `레벨${i}`} (${m.ckpt} model, T=${m.temp.toFixed(1)})`
   }));
-  let aiDifficulty = $state(2); // 기본: index 2 (50k model, T=0.5)
+  let aiDifficulty = $state(2);
 
   function modifierFlagsFromActive(active: Set<keyof ModifierFlags>): ModifierFlags {
     return {
@@ -71,13 +72,24 @@
 
     board = createBoard({ rows, cols, shape, isTutorial: tutorial, modifiers });
     lastAiRemoved = [];
-    message = tutorial ? `튜토리얼 ${tier} / 3` : `${tier}번째 판`;
+
+    // 💡 4번째 판(본게임) 진입 시 폭죽 타이머 가동
+    if (tier === 4) {
+      isCelebration = true;
+      message = `✨ 본 게임 시작! 변형 모드에 돌입합니다! ✨`;
+      setTimeout(() => {
+        isCelebration = false;
+      }, 3000); 
+    } else {
+      message = tutorial ? `튜토리얼 ${tier} / 3` : `${tier}번째 판`;
+    }
+
     phase = 'playing';
   }
 
   onMount(() => {
     startNewBoard(1);
-    warmupModels(); // ONNX 모델 미리 로드 (첫 AI 수 지연 제거)
+    warmupModels();
   });
 
   function handleHumanMove(anchor: Pos, quadrant: Quadrant) {
@@ -100,7 +112,6 @@
   async function runAiTurn() {
     let move;
     try {
-      // 브라우저 사이드 ONNX 신경망 (난이도별 chomp_1k/10k/50k/200k.onnx)
       move = await requestModifiedMove(board, boardsCleared, activeModifiers, aiDifficulty);
     } catch (e) {
       console.warn('ONNX AI 실패 — 로컬 휴리스틱 폴백', e);
@@ -114,7 +125,6 @@
       return;
     }
 
-    // 사람 한 번 + AI 한 번 = 1라운드가 방금 끝났으니, 이때만 재생 조각을 갱신한다.
     advanceRound(board);
 
     phase = 'playing';
@@ -173,7 +183,7 @@
   <p class="sr-only" role="status" aria-live="polite">{message}</p>
 
   <header class="game-header-bar">
-    <a class="exit-btn" href={resolve("/play")}>← 탈출하기</a>
+    <a class="exit-btn" href={resolve("/play")}>← 나가기</a>
     <div class="center-status">
       <span class="course-tag">{isTutorialTier ? '튜토리얼 코스' : '변형 모드'}</span>
       <h1 class="stage-indicator">
@@ -270,6 +280,30 @@
           {rankTitle(boardsCleared)}
         </p>
         <button class="action-modal-btn finish" onclick={restartRun}>다시 시작하기</button>
+      </div>
+    </div>
+  {/if}
+
+  {#if isCelebration}
+    <div class="celebration-overlay" transition:fade={{ duration: 400 }}>
+      <div class="celebration-text" transition:scale={{ duration: 600, start: 0.6 }}>
+        <span class="sub-title">TUTORIAL COMPLETE</span>
+        <h2>본 게임 서막 개시! ⚔️</h2>
+        <p>지금부터 변형 모드가 완벽히 적용됩니다!</p>
+      </div>
+      
+      <div class="confetti-container">
+        {#each Array(40) as _, i}
+          <div 
+            class="confetti" 
+            style="
+              --delay: {Math.random() * 0.6}s; 
+              --x: {Math.random() * 100}vw; 
+              --color: {['#ffb703', '#4ade80', '#f87171', '#38bdf8'][i % 4]};
+              --duration: {2.0 + Math.random() * 1.5}s;
+            "
+          ></div>
+        {/each}
       </div>
     </div>
   {/if}
@@ -596,6 +630,84 @@
     line-height: 1.4;
   }
 
+  /* 💡 본게임 돌입 오버레이 스타일 추가 */
+  .celebration-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 150;
+    background: rgba(26, 15, 10, 0.88);
+    backdrop-filter: blur(5px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: none;
+  }
+
+  .celebration-text {
+    text-align: center;
+    z-index: 152;
+  }
+
+  .celebration-text .sub-title {
+    font-size: 0.9rem;
+    color: #ffb703;
+    font-weight: 900;
+    letter-spacing: 4px;
+    display: block;
+    margin-bottom: 0.5rem;
+    animation: textPulse 0.8s infinite alternate ease-in-out;
+  }
+
+  .celebration-text h2 {
+    font-family: 'Do Hyeon', sans-serif;
+    font-size: 3.2rem;
+    margin: 0;
+    color: #fff;
+    text-shadow: 0 0 25px rgba(255, 183, 3, 0.7);
+  }
+
+  .celebration-text p {
+    font-size: 1.15rem;
+    color: rgba(255, 246, 233, 0.8);
+    margin: 0.75rem 0 0 0;
+  }
+
+  .confetti-container {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    z-index: 151;
+  }
+
+  .confetti {
+    position: absolute;
+    top: -30px;
+    left: var(--x);
+    width: 8px;
+    height: 22px;
+    background-color: var(--color);
+    border-radius: 3px;
+    opacity: 0;
+    animation: confettiFall var(--duration) linear infinite;
+    animation-delay: var(--delay);
+  }
+
+  @keyframes confettiFall {
+    0% {
+      transform: translateY(0) rotate(0deg);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(105vh) rotate(540deg);
+      opacity: 0;
+    }
+  }
+
+  @keyframes textPulse {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.06); }
+  }
+
   @media (max-width: 640px) {
     .game-header-bar {
       flex-wrap: wrap;
@@ -604,6 +716,12 @@
     }
     .stage-indicator {
       font-size: 1.2rem;
+    }
+    .celebration-text h2 {
+      font-size: 2.2rem;
+    }
+    .celebration-text p {
+      font-size: 1rem;
     }
   }
 </style>

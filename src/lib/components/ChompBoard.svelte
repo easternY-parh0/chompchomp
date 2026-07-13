@@ -91,55 +91,57 @@
 </script>
 
 <div class="chomp-board-wrap">
-  <div
-    class="chocolate-board"
-    style="--rows:{board.rows}; --cols:{board.cols}"
-    role="group"
-    aria-label="촘프 보드"
-  >
-    {#each rowIndices as r (r)}
-      {#each colIndices as c (c)}
-        {@const t = board.tiles[r][c]}
-        {#if t.hole}
-          <div class="hole" aria-hidden="true"></div>
-        {:else}
-          <button
-            type="button"
-            class="choco-piece"
-            class:preview={t.alive && previewSet.has(`${r}-${c}`)}
-            class:just-removed={lastRemovedSet.has(`${r}-${c}`)}
-            class:is-poison={t.isPoison}
-            class:eaten={!t.alive}
-            class:regrowing={!t.alive && t.isRegrowth && t.regrowAt !== null}
-            class:selected={selectedAnchor?.r === r && selectedAnchor?.c === c}
-            disabled={disabled || !t.alive}
-            tabindex={t.alive && !disabled ? 0 : -1}
-            aria-label={t.isPoison ? '독약 조각' : `초콜릿 조각 ${r + 1}행 ${c + 1}열`}
-            onclick={() => selectCell({ r, c })}
-            onkeydown={(e) => handleKey(e, { r, c })}
-          >
-            {#if t.alive}
-              {@const glyph = tileEmoji(t)}
-              <div class="piece-inner">
-                {#if glyph}
-                  <span class="piece-glyph" transition:scale={{ duration: 200 }}>{glyph}</span>
-                  {#if t.isIce && t.hp === 1}
-                    <span class="crack-badge" aria-label="금이 갔어요">💔</span>
+  <div class="board-viewport">
+    <div
+      class="chocolate-board"
+      style="--rows:{board.rows}; --cols:{board.cols}"
+      role="group"
+      aria-label="촘프 보드"
+    >
+      {#each rowIndices as r (r)}
+        {#each colIndices as c (c)}
+          {@const t = board.tiles[r][c]}
+          {#if t.hole}
+            <div class="hole" aria-hidden="true"></div>
+          {:else}
+            <button
+              type="button"
+              class="choco-piece"
+              class:preview={t.alive && previewSet.has(`${r}-${c}`)}
+              class:just-removed={lastRemovedSet.has(`${r}-${c}`)}
+              class:is-poison={t.isPoison}
+              class:eaten={!t.alive}
+              class:regrowing={!t.alive && t.isRegrowth && t.regrowAt !== null}
+              class:selected={selectedAnchor?.r === r && selectedAnchor?.c === c}
+              disabled={disabled || !t.alive}
+              tabindex={t.alive && !disabled ? 0 : -1}
+              aria-label={t.isPoison ? '독약 조각' : `초콜릿 조각 ${r + 1}행 ${c + 1}열`}
+              onclick={() => selectCell({ r, c })}
+              onkeydown={(e) => handleKey(e, { r, c })}
+            >
+              {#if t.alive}
+                {@const glyph = tileEmoji(t)}
+                <div class="piece-inner">
+                  {#if glyph}
+                    <span class="piece-glyph" transition:scale={{ duration: 200 }}>{glyph}</span>
+                    {#if t.isIce && t.hp === 1}
+                      <span class="crack-badge" aria-label="금이 갔어요">💔</span>
+                    {/if}
+                  {:else}
+                    <span class="deco-indent"></span>
                   {/if}
-                {:else}
-                  <span class="deco-indent"></span>
-                {/if}
-              </div>
-            {:else if t.isRegrowth && t.regrowAt !== null}
-              <div class="regrow-ghost" aria-label="{regrowCountdown(t)}라운드 후 재생">
-                <span class="ghost-icon">🌱</span>
-                <span class="regrow-count">{regrowCountdown(t)}</span>
-              </div>
-            {/if}
-          </button>
-        {/if}
+                </div>
+              {:else if t.isRegrowth && t.regrowAt !== null}
+                <div class="regrow-ghost" aria-label="{regrowCountdown(t)}라운드 후 재생">
+                  <span class="ghost-icon">🌱</span>
+                  <span class="regrow-count">{regrowCountdown(t)}</span>
+                </div>
+              {/if}
+            </button>
+          {/if}
+        {/each}
       {/each}
-    {/each}
+    </div>
   </div>
 
   <div class="control-bar">
@@ -186,19 +188,42 @@
     width: 100%;
   }
 
+  /* 💡 대형 보드가 와도 깨지지 않고 가로 스크롤을 지원하는 뷰포트 레이어 */
+  .board-viewport {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: auto;
+    overflow-y: hidden;
+    display: flex;
+    justify-content: flex-start; /* 스크롤 가능 시 왼쪽 정렬 유지 */
+    padding: 12px 1rem;
+    box-sizing: border-box;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* 화면이 넓을 때는 중앙 정렬 */
+  @media (min-width: 600px) {
+    .board-viewport {
+      justify-content: center;
+    }
+  }
+
+  /* 💡 너비/높이를 고정하는 대신 조각 수에 따라 자동으로 팽창하도록 변경 */
   .chocolate-board {
     display: grid;
-    grid-template-columns: repeat(var(--cols), 1fr);
-    grid-template-rows: repeat(var(--rows), 1fr);
+    /* 💡 조각 하나의 크기를 54px 고정형태로 지정하여 찌그러짐 원천 차단 */
+    grid-template-columns: repeat(var(--cols), 54px);
+    grid-template-rows: repeat(var(--rows), 54px);
     gap: 8px;
     background: #3d2314;
     padding: 18px;
     border-radius: 16px;
-    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6), inset 0 0 20px rgba(0, 0, 0, 0.4);
-    width: min(92vw, 480px);
-    height: min(60vh, 400px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(0, 0, 0, 0.4);
+    width: max-content;
+    height: max-content;
     box-sizing: border-box;
     margin: 0 auto;
+    flex-shrink: 0;
   }
 
   .hole {
@@ -209,18 +234,20 @@
   .choco-piece {
     width: 100%;
     height: 100%;
+    /* 💡 완벽한 정사각형 비율 유지 */
+    aspect-ratio: 1 / 1;
     border: none;
     font-family: inherit;
     border-radius: 8px;
     background: #7a4c2d;
-    box-shadow: 0 6px 0 #54341e, 0 8px 15px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 5px 0 #54341e, 0 6px 12px rgba(0, 0, 0, 0.35);
     display: grid;
     place-items: center;
     padding: 4px;
     box-sizing: border-box;
     cursor: pointer;
     position: relative;
-    transition: transform 0.1s, box-shadow 0.1s, opacity 0.4s ease-out, background 0.15s;
+    transition: transform 0.1s, box-shadow 0.1s, opacity 0.3s ease-out, background 0.15s;
   }
 
   .choco-piece:hover:not(:disabled) {
@@ -229,7 +256,7 @@
   }
 
   .choco-piece:active:not(:disabled) {
-    transform: translateY(4px);
+    transform: translateY(3px);
     box-shadow: 0 2px 0 #54341e;
   }
 
@@ -239,7 +266,7 @@
 
   .choco-piece.is-poison {
     background: #9d3a3a;
-    box-shadow: 0 6px 0 #6e2525, 0 8px 15px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 5px 0 #6e2525, 0 6px 12px rgba(0, 0, 0, 0.35);
   }
 
   .choco-piece.eaten {
@@ -264,7 +291,7 @@
 
   .choco-piece.selected {
     transform: translateY(-4px);
-    box-shadow: 0 10px 0 #54341e, 0 0 0 3px #ffb703, 0 12px 20px rgba(0, 0, 0, 0.45);
+    box-shadow: 0 9px 0 #54341e, 0 0 0 3px #ffb703, 0 10px 16px rgba(0, 0, 0, 0.4);
   }
 
   .choco-piece.just-removed {
@@ -289,15 +316,16 @@
     border-radius: 4px;
     display: grid;
     place-items: center;
-    box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.2);
-    font-size: clamp(0.9rem, calc(220px / var(--cols)), 2rem);
+    box-shadow: inset 0 4px 6px rgba(0, 0, 0, 0.25);
+    /* 💡 조각 크기가 고정이므로 폰트 크기도 가독성이 뛰어난 고정값(1.45rem)으로 매칭 */
+    font-size: 1.45rem;
   }
 
   .crack-badge {
     position: absolute;
-    bottom: 1px;
-    right: 1px;
-    font-size: 0.5em;
+    bottom: -1px;
+    right: -1px;
+    font-size: 0.55em;
     line-height: 1;
     background: #1a0f0a;
     border-radius: 999px;
@@ -305,11 +333,11 @@
   }
 
   .deco-indent {
-    width: 40%;
-    height: 40%;
-    border: 2px solid rgba(0, 0, 0, 0.2);
-    border-radius: 2px;
-    background: rgba(0, 0, 0, 0.08);
+    width: 45%;
+    height: 45%;
+    border: 2px solid rgba(0, 0, 0, 0.18);
+    border-radius: 3px;
+    background: rgba(0, 0, 0, 0.05);
   }
 
   .regrow-ghost {
@@ -321,23 +349,23 @@
   }
 
   .regrow-ghost .ghost-icon {
-    font-size: clamp(0.7rem, calc(160px / var(--cols)), 1.5rem);
+    font-size: 1.2rem;
     opacity: 0.35;
     filter: grayscale(50%);
   }
 
   .regrow-ghost .regrow-count {
     position: absolute;
-    bottom: 2px;
-    right: 2px;
+    bottom: 1px;
+    right: 1px;
     min-width: 1.2em;
     text-align: center;
     background: #1a0f0a;
     color: #fff6e9;
-    font-size: 0.7rem;
-    line-height: 1.5;
+    font-size: 0.65rem;
+    line-height: 1.4;
     border-radius: 999px;
-    padding: 0 0.35em;
+    padding: 0 0.3em;
   }
 
   .control-bar {
