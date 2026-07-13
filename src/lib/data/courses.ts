@@ -1,5 +1,3 @@
-// src/lib/data/courses.ts
-
 export interface GameRound {
   roundNumber: number;
   rows: number;
@@ -24,6 +22,11 @@ export interface GameCourse {
   flavorText: string;
   chocoColor: string;
   labelColor: string;
+  // --- 디자인 관련 추가 속성 ---
+  labelText: string;      // 라벨에 표시될 큰 영문 타이틀
+  labelSubtitle: string;  // 라벨에 표시될 작은 영문 서브타이틀
+  patternType: 'stripe' | 'ornament' | 'diamond'; // 라벨 배경 패턴 종류
+  // --------------------------
   rounds: GameRound[];
   messages: CourseMessages;
 }
@@ -37,10 +40,14 @@ export const coursesData: GameCourse[] = [
     flavorText: '“달콤한 밀크 초코와 함께 가볍게 워밍업!”',
     chocoColor: '#8c5a3c',
     labelColor: 'linear-gradient(135deg, #a26a47, #734326)',
+    // 디자인 속성
+    labelText: 'MILK GANACHE',
+    labelSubtitle: 'CREAMY & SOFT BLEND',
+    patternType: 'stripe',
     rounds: [
-      { roundNumber: 1, rows: 2, cols: 3, sizeText: '2 × 3' },
+      { roundNumber: 1, rows: 1, cols: 5, sizeText: '1 × 5' },
       { roundNumber: 2, rows: 3, cols: 3, sizeText: '3 × 3' },
-      { roundNumber: 3, rows: 3, cols: 4, sizeText: '3 × 4' }
+      { roundNumber: 3, rows: 2, cols: 4, sizeText: '2 × 4' }
     ],
     messages: {
       stageClearTitle: 'STAGE CLEAR! 🎉',
@@ -59,6 +66,10 @@ export const coursesData: GameCourse[] = [
     flavorText: '“카카오 72%, 가로세로의 균형을 무너뜨려라.”',
     chocoColor: '#4a2c1a',
     labelColor: 'linear-gradient(135deg, #5c3820, #341e14)',
+    // 디자인 속성
+    labelText: 'DARK CACAO',
+    labelSubtitle: '72% RICH INTENSITY',
+    patternType: 'diamond',
     rounds: [
       { roundNumber: 1, rows: 4, cols: 4, sizeText: '4 × 4' },
       { roundNumber: 2, rows: 3, cols: 5, sizeText: '3 × 5' },
@@ -81,6 +92,10 @@ export const coursesData: GameCourse[] = [
     flavorText: '“마지막 독약 조각을 남기기 위한 치밀한 3단계 설계.”',
     chocoColor: '#2b1810',
     labelColor: 'linear-gradient(135deg, #3d2314, #1f100a)',
+    // 디자인 속성
+    labelText: 'BLACK GARDENER',
+    labelSubtitle: 'THE DAVID GALE\'S LEGACY',
+    patternType: 'ornament',
     rounds: [
       { roundNumber: 1, rows: 5, cols: 5, sizeText: '5 × 5' },
       { roundNumber: 2, rows: 4, cols: 7, sizeText: '4 × 7' },
