@@ -7,7 +7,7 @@
   import { ALL_MODIFIER_KEYS, MODIFIER_INFO, NO_MODIFIERS } from '$lib/types';
   import { createBoard, commitMove, pickRandom, advanceRound } from '$lib/engine';
   import { chooseAiMove } from '$lib/ai';
-  import { requestModifiedMove, warmupModels } from '$lib/aiBrowser';
+  import { requestModifiedMove, warmupModels, MODIFIED_MODELS } from '$lib/aiBrowser';
   import ChompBoard from '$lib/components/ChompBoard.svelte';
 
   type Phase = 'playing' | 'ai-thinking' | 'life-lost' | 'modifier-draft' | 'game-over';
@@ -32,13 +32,13 @@
   const lifeSlots = [0, 1, 2];
 
   // AI 난이도 선택 (상단바 드롭박스). 판 크기·모디파이어는 진행대로, AI 강도만 이 값으로.
-  const AI_LEVELS = [
-    { value: 0, label: '매우 쉬움' },
-    { value: 1, label: '쉬움' },
-    { value: 2, label: '보통' },
-    { value: 3, label: '어려움' }
-  ];
-  let aiDifficulty = $state(2); // 기본: 보통
+  // MODIFIED_MODELS(실제 추론에 쓰는 모델/temperature)에서 그대로 라벨을 뽑아 표기와 실제 동작이 어긋나지 않게 한다.
+  const AI_LEVEL_NAMES = ['매우 쉬움', '쉬움', '보통', '어려움'];
+  const AI_LEVELS = MODIFIED_MODELS.map((m, i) => ({
+    value: i,
+    label: `${AI_LEVEL_NAMES[i] ?? `레벨${i}`} (${m.ckpt} model, T=${m.temp.toFixed(1)})`
+  }));
+  let aiDifficulty = $state(2); // 기본: index 2 (50k model, T=0.5)
 
   function modifierFlagsFromActive(active: Set<keyof ModifierFlags>): ModifierFlags {
     return {
@@ -362,14 +362,16 @@
 
   .stat-row {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 1.25rem;
+    gap: 0.75rem 1.25rem;
   }
 
   .ai-level {
     display: flex;
     align-items: center;
     gap: 0.4rem;
+    flex: 1 1 100%;
     margin-right: auto;
   }
   .ai-level-label {
@@ -377,10 +379,11 @@
     color: rgba(255, 246, 233, 0.6);
     font-weight: 700;
     letter-spacing: 0.5px;
+    white-space: nowrap;
   }
   .ai-level select {
-    font-family: 'Do Hyeon', 'Noto Sans KR', sans-serif;
-    font-size: 0.95rem;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 0.8rem;
     color: #1a0f0a;
     background: #ffb703;
     border: none;
@@ -388,6 +391,7 @@
     padding: 0.35rem 0.6rem;
     cursor: pointer;
     box-shadow: 0 3px 8px rgba(255, 183, 3, 0.2);
+    max-width: 13rem;
   }
   .ai-level select:focus-visible {
     outline: 2px solid #fff6e9;

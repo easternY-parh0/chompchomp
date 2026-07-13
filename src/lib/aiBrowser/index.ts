@@ -17,12 +17,13 @@ export interface AiMove {
 export interface DiffModel {
   url: string;
   temp: number;
+  ckpt: string; // 학습 판수 태그 (표기용). train_app.ipynb 의 checkpoint_{ckpt}.pt 와 대응.
 }
 export const MODIFIED_MODELS: DiffModel[] = [
-  { url: '/models/chomp_1k.onnx', temp: 2.0 }, // 0: 튜토리얼/매우 쉬움
-  { url: '/models/chomp_10k.onnx', temp: 1.0 }, // 1: 쉬움
-  { url: '/models/chomp_50k.onnx', temp: 0.5 }, // 2: 보통
-  { url: '/models/chomp_200k.onnx', temp: 0.1 } // 3: 어려움  (0.0 으로 두면 '최강')
+  { url: '/models/chomp_1k.onnx', temp: 2.0, ckpt: '1k' }, // 0: 튜토리얼/매우 쉬움
+  { url: '/models/chomp_10k.onnx', temp: 1.0, ckpt: '10k' }, // 1: 쉬움
+  { url: '/models/chomp_50k.onnx', temp: 0.5, ckpt: '50k' }, // 2: 보통
+  { url: '/models/chomp_200k.onnx', temp: 0.1, ckpt: '200k' } // 3: 어려움  (0.0 으로 두면 '최강')
 ];
 
 // boardsCleared → 난이도(0..3). ai.ts 의 difficultyForBoard 구간과 동일.
