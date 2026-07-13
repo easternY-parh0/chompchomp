@@ -3,6 +3,13 @@
   import { resolve } from '$app/paths';
   import { guideArticles } from '$lib/data/guideData';
   
+  // 1. MathJax 인터페이스 타입을 안전하게 정의하여 'any' 제거
+  interface CustomWindow extends Window {
+    MathJax?: {
+      typesetPromise?: () => Promise<void>;
+    };
+  }
+
   let activeModal = $state<number | null>(null);
 
   // 현재 활성화된 모달 데이터 연산 계산 (Runes)
@@ -20,9 +27,10 @@
 
   // MathJax 수식 재렌더링 트리거
   $effect(() => {
-    if (activeModal !== null && typeof window !== 'undefined' && (window as any).MathJax) {
+    const customWindow = window as CustomWindow;
+    if (activeModal !== null && typeof window !== 'undefined' && customWindow.MathJax) {
       setTimeout(() => {
-        (window as any).MathJax.typesetPromise?.();
+        customWindow.MathJax?.typesetPromise?.();
       }, 50);
     }
   });
@@ -62,7 +70,7 @@
   </header>
 
   <main class="content-container">
-    {#each guideArticles as article}
+    {#each guideArticles as article (article.id)}
       <button class="menu-card" onclick={() => openModal(article.id)}>
         <div class="card-title-row">
           <span class="card-emoji">{article.emoji}</span>
@@ -89,42 +97,44 @@
       <button class="nav-close-btn" onclick={closeModal}>← 목록으로 돌아가기</button>
     </nav>
 
-    <div class="fullscreen-body" transition:fly={{ y: 30, duration: 400 }}>
-      <div class="article-container">
-        <h1 class="article-main-title">{currentArticle.emoji} {currentArticle.title.split('. ')[1]}</h1>
-        
-        <div class="article-text">
-          {#each currentArticle.sections as section}
-            {#if section.type === 'subtitle'}
-              <h3>{section.text}</h3>
-            {:else if section.type === 'paragraph'}
-              <p>{@html section.text}</p>
-            {:else if section.type === 'callout'}
-              <div class="info-callout"><p>{@html section.text}</p></div>
-            {:else if section.type === 'highlight'}
-              <p class="summary-highlight">{@html section.text}</p>
-            {:else if section.type === 'board'}
-              <div class={section.caption ? "inline-board-box" : "inline-board-box-mini"}>
-                {#if section.caption}<span class="board-caption">{section.caption}</span>{/if}
-                
-                <div class="guide-board {section.layoutClass}">
-                  {#each section.pieces || [] as piece}
-                    {@const props = getPieceProps(piece)}
-                    <div class={props.class}>
-                      {#if props.text === '☠️'}
-                        <span class="skull-icon">☠️</span>
-                      {:else}
-                        {props.text}
-                        {#if !props.text && piece === 'normal'}<div class="indent"></div>{/if}
-                      {/if}
-                    </div>
-                  {/each}
+    <div class="fullscreen-body-scroll">
+      <div class="fullscreen-body" transition:fly={{ y: 30, duration: 400 }}>
+        <div class="article-container">
+          <h1 class="article-main-title">{currentArticle.emoji} {currentArticle.title.split('. ')[1] || currentArticle.title}</h1>
+          
+          <div class="article-text">
+            {#each currentArticle.sections as section, i (section.type + i)}
+              {#if section.type === 'subtitle'}
+                <h3>{section.text}</h3>
+              {:else if section.type === 'paragraph'}
+                <p>{@html section.text}</p>
+              {:else if section.type === 'callout'}
+                <div class="info-callout"><p>{@html section.text}</p></div>
+              {:else if section.type === 'highlight'}
+                <p class="summary-highlight">{@html section.text}</p>
+              {:else if section.type === 'board'}
+                <div class={section.caption ? "inline-board-box" : "inline-board-box-mini"}>
+                  {#if section.caption}<span class="board-caption">{section.caption}</span>{/if}
+                  
+                  <div class="guide-board {section.layoutClass}">
+                    {#each section.pieces || [] as piece, j (piece + j)}
+                      {@const props = getPieceProps(piece)}
+                      <div class={props.class}>
+                        {#if props.text === '☠️'}
+                          <span class="skull-icon">☠️</span>
+                        {:else}
+                          {props.text}
+                          {#if !props.text && piece === 'normal'}<div class="indent"></div>{/if}
+                        {/if}
+                      </div>
+                    {/each}
+                  </div>
+                  
+                  {#if section.subDesc}<p class="board-sub-desc">{section.subDesc}</p>{/if}
                 </div>
-                
-                {#if section.subDesc}<p class="board-sub-desc">{section.subDesc}</p>{/if}
-              </div>
-            {/if}
-          {/each}
+              {/if}
+            {/each}
+          </div>
         </div>
       </div>
     </div>
@@ -151,8 +161,9 @@
     color: var(--color-ink);
     font-family: 'Noto Sans KR', system-ui, sans-serif;
     padding: 3rem 1.5rem 4rem;
-    max-width: 760px;
-    margin: 0 auto;
+    
+    width: 100%;
+    max-width: 100%; 
     box-sizing: border-box;
     min-height: 100vh;
     display: flex;
@@ -166,9 +177,13 @@
     margin: 0;
   }
 
-  .explain-header {
-    text-align: center;
-    padding-bottom: 3rem;
+  .explain-header,
+  .content-container,
+  .explain-footer {
+    width: 100%;
+    max-width: 720px;
+    margin-left: auto;
+    margin-right: auto;
   }
 
   .eyebrow {
@@ -191,7 +206,6 @@
     opacity: 0.85;
   }
 
-  /* 메인 카드 대시보드 구조 */
   .content-container {
     display: flex;
     flex-direction: column;
@@ -229,7 +243,6 @@
   .card-preview { color: var(--color-milk); opacity: 0.8; margin: 0 0 1rem 0; font-size: 0.95rem; }
   .click-tip { font-family: 'Do Hyeon', sans-serif; color: var(--color-gold); font-size: 0.95rem; }
 
-  /* 몰입형 풀스크린 뷰어 스타일 */
   .fullscreen-viewer {
     position: fixed;
     top: 0;
@@ -240,20 +253,23 @@
     z-index: 10000;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
   }
 
   .fullscreen-navbar {
+    flex-shrink: 0;
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 1rem 2rem;
     background: #140a05;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    z-index: 10001;
   }
 
   .nav-badge {
     font-family: 'Do Hyeon', sans-serif;
-    background: var(--color-gold);
+    background: #ffb703;
     color: #140a05;
     padding: 0.25rem 0.75rem;
     border-radius: 6px;
@@ -273,13 +289,17 @@
     transition: background 0.2s;
   }
   .nav-close-btn:hover {
-    background: var(--color-choco);
+    background: #6b4226;
+  }
+
+  .fullscreen-body-scroll {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .fullscreen-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 3rem 1.5rem;
+    padding: 3rem 1.5rem 5rem;
     box-sizing: border-box;
   }
 
@@ -310,15 +330,14 @@
 
   .article-text h3 {
     font-size: 1.4rem;
-    color: var(--color-gold);
+    color: #ffb703;
     margin: 2.5rem 0 1rem 0;
-    border-left: 4px solid var(--color-gold);
+    border-left: 4px solid #ffb703;
     padding-left: 0.75rem;
   }
 
-  /* MathJax LaTeX 수식 전용 테두리 여백 규격 수정 */
   :global(.mjx-chtml) {
-    color: var(--color-gold) !important;
+    color: #ffb703 !important;
     background: rgba(0, 0, 0, 0.2);
     padding: 2px 6px;
     border-radius: 4px;
@@ -334,26 +353,15 @@
   .info-callout p { margin: 0; color: #ffffff; }
 
   .summary-highlight {
-    color: var(--color-gold) !important;
+    color: #ffb703 !important;
     font-weight: 700;
     background: rgba(255, 183, 3, 0.06);
     padding: 1.25rem;
     border-radius: 12px;
     margin-top: 2rem;
-    border: 1px dashed var(--color-gold);
+    border: 1px dashed #ffb703;
   }
 
-  .rule-card-item {
-    background: #140a05;
-    padding: 1.6rem;
-    border-radius: 16px;
-    margin-bottom: 1.8rem;
-    border: 1px solid rgba(255,255,255,0.03);
-  }
-  .rule-card-item h3 { color: #ffffff; margin-bottom: 0.75rem; font-size: 1.25rem; }
-  .rule-card-item p { color: #e1d3c7; font-size: 1rem; margin: 0; }
-
-  /* 그리드 관련 */
   .inline-board-box {
     background: rgba(0, 0, 0, 0.4);
     padding: 1.5rem;
@@ -375,7 +383,7 @@
   .board-caption {
     font-family: 'Do Hyeon', sans-serif;
     font-size: 0.95rem;
-    color: var(--color-gold);
+    color: #ffb703;
     margin-bottom: 1rem;
     letter-spacing: 0.3px;
   }
@@ -412,7 +420,7 @@
     justify-content: center;
     font-family: 'Do Hyeon', sans-serif;
     font-size: 0.9rem;
-    color: var(--color-gold);
+    color: #ffb703;
     box-shadow: 0 3px 0 #4a2c1a;
   }
 
@@ -436,11 +444,11 @@
     text-decoration: none;
     font-family: 'Do Hyeon', sans-serif;
     font-size: 1.1rem;
-    background: var(--color-choco);
+    background: #6b4226;
     color: #ffffff;
     padding: 0.75rem 2.2rem;
     border-radius: 50px;
-    box-shadow: 0 4px 0 var(--color-choco-dark);
+    box-shadow: 0 4px 0 #1e0f08;
   }
   .back-btn:hover { background: #825232; }
   .copyright { margin-top: 1.5rem; font-size: 0.8rem; color: rgba(255,255,255,0.12); }

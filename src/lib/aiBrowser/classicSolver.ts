@@ -20,25 +20,69 @@ function solve(widths: number[]): Solved {
   if (cached) return cached;
 
   const rows = widths.length;
-  let fallback: [number, number] | null = null;
   let result: Solved = { win: -1, move: null };
+  
+  let bestFallback: [number, number] | null = null;
+  let bestFallbackScore = -Infinity;
 
   outer: for (let r = 0; r < rows; r++) {
     for (let c = 0; c < widths[r]; c++) {
       const nw = widths.slice();
       for (let rr = r; rr < rows; rr++) nw[rr] = Math.min(nw[rr], c);
-      if (nw.every((w) => w === 0)) {
-        if (!fallback) fallback = [r, c]; // 독약만 남기는 수 = 마지막 수단
-        continue;
-      }
-      if (solve(nw).win === -1) {
+      
+      const isDeadly = nw.every((w) => w === 0);
+      
+      // 1. 필승수가 있다면 바로 선택
+      if (!isDeadly && solve(nw).win === -1) {
         result = { win: 1, move: [r, c] };
         break outer;
       }
-      if (!fallback) fallback = [r, c];
+
+      // 2. 패배 상황에서의 차선책 점수 설계
+      let score = 0;
+
+      if (isDeadly) {
+        score = -99999; // 즉시 자살은 여전히 최하위
+      } else {
+        const activeRows = nw.filter(w => w > 0).length;
+        const maxCols = Math.max(...nw);
+        
+        // [체크] 방금 내가 둔 수로 인해 맵이 얼마나 깎였는가?
+        const currentCells = widths.reduce((a, b) => a + b, 0);
+        const nextCells = nw.reduce((a, b) => a + b, 0);
+        const consumed = currentCells - nextCells; // 이번에 먹은 양
+
+        // 기피 조건 1: 외줄 만들기 (상대 필승 형태)
+        if (activeRows === 1 || maxCols === 1) {
+          score -= 1000;
+        }
+
+        // 기피 조건 2: 한 칸씩 갉아먹으며 겜 늘어지게 만들기
+        // 패배 확정인데 1칸만 야금야금 먹는 비겁한(?) 수에 큰 패널티 부여
+        if (consumed === 1) {
+          score -= 500;
+        }
+
+        // 선호 조건: 정사각형에 가까운 형태 유지 (대칭성이 있어 유저가 실수하기 쉬움)
+        // 가로/세로 길이 차이가 적을수록 가점
+        const shapeDiff = Math.abs(activeRows - maxCols);
+        score += (100 - shapeDiff * 10);
+
+        // 약간의 랜덤성(타이브레이커)을 주어 매번 똑같은 구석을 파먹지 않게 합니다.
+        score += (r + c) * 0.1; 
+      }
+
+      if (score > bestFallbackScore || bestFallback === null) {
+        bestFallbackScore = score;
+        bestFallback = [r, c];
+      }
     }
   }
-  if (result.move === null) result = { win: -1, move: fallback };
+  
+  if (result.move === null) {
+    result = { win: -1, move: bestFallback };
+  }
+  
   memo.set(key, result);
   return result;
 }
