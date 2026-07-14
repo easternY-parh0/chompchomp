@@ -27,6 +27,7 @@ export interface GameCourse {
   labelSubtitle: string;  // 라벨에 표시될 작은 영문 서브타이틀
   patternType: 'stripe' | 'ornament' | 'diamond'; // 라벨 배경 패턴 종류
   // --------------------------
+  hidden?: boolean;
   rounds: GameRound[];
   messages: CourseMessages;
 }
@@ -108,6 +109,33 @@ export const coursesData: GameCourse[] = [
       gameOverBody: '방대한 경우의 수 속에서 길을 잃었습니다. 처음부터 다시 필승 루트를 역추적해 보세요.',
       courseClearTitle: 'CHOMP 마스터 등극! 🖤',
       courseClearBody: '가장 거대하고 복잡한 초콜릿 판을 모두 지워내셨습니다.<br>당신은 이제 촘프 게임의 완벽한 <b>최종 지배자</b>입니다.'
+    }
+  },
+  {
+    id: '4',
+    title: '하이퍼메가테라 초코 매니악 코스',
+    difficulty: 9,
+    description: '도전하지 않는 것을 추천합니다.',
+    flavorText: '“초고의 심리전, 그리고 광인을 위한.”',
+    chocoColor: '#43262d',
+    labelColor: 'linear-gradient(135deg, #3d2314, #1f100a)',
+    // 디자인 속성
+    labelText: 'HYPER-MEGA-TERA-CHOCO-MANIAC',
+    labelSubtitle: 'Do not try this at home',
+    patternType: 'diamond',
+    hidden: true,
+    rounds: [
+      { roundNumber: 1, rows: 7, cols: 8, sizeText: '7 × 8' },
+      { roundNumber: 2, rows: 3, cols: 9, sizeText: '3 × 9' },
+      { roundNumber: 3, rows: 5, cols: 10, sizeText: '5 × 10' }
+    ],
+    messages: {
+      stageClearTitle: '승리!',
+      stageClearBody: '이걸 클리어하시다니... 비결 좀 알려주세요!',
+      gameOverTitle: '아깝게 실패...',
+      gameOverBody: '괜찮아요. 다시 한번 도전해 보죠.',
+      courseClearTitle: 'THE FINAL',
+      courseClearBody: '이제 촘프 게임에서 당신의 적수는 없습니다. 축하드립니다!'
     }
   }
 ];

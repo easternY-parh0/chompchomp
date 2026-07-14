@@ -1,20 +1,75 @@
 <script lang="ts">
-  import { fade, fly } from 'svelte/transition';
+  import { fade, fly, scale } from 'svelte/transition';
   import { resolve } from '$app/paths';
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   
-  // 외부로 분리한 데이터 및 타입 불러오기
-  import { coursesData as courses } from '$lib/data/courses';
+  import { coursesData as rawCourses } from '$lib/data/courses';
 
   let ready = $state(false);
   let currentIndex = $state(0);
   let direction = $state(1);
-  
-  // Svelte 5 $derived 룬을 활용해 현재 선택된 코스 자동 추적
+
+  let secretUnlocked = $state(false);
+  let showUnlockToast = $state(false);
+  let unlockToastTimer: ReturnType<typeof setTimeout> | undefined;
+
+  const courses = $derived(rawCourses.filter((c) => !c.hidden || secretUnlocked));
   const currentCourse = $derived(courses[currentIndex]);
+
+  // 💡 배열 길이가 바뀌어도 인덱스가 항상 유효 범위 안에 있도록 보정
+  $effect(() => {
+    if (currentIndex >= courses.length) {
+      currentIndex = Math.max(0, courses.length - 1);
+    }
+  });
+
+  const KONAMI_CODE = [
+    'ArrowUp', 'ArrowUp',
+    'ArrowDown', 'ArrowDown',
+    'ArrowLeft', 'ArrowRight',
+    'ArrowLeft', 'ArrowRight',
+    'KeyB', 'KeyA'
+  ];
+  let keyBuffer: string[] = [];
+
+  function handleKonamiKeydown(e: KeyboardEvent) {
+    if (secretUnlocked) return;
+
+    keyBuffer.push(e.code);
+    if (keyBuffer.length > KONAMI_CODE.length) {
+      keyBuffer = keyBuffer.slice(-KONAMI_CODE.length);
+    }
+
+    if (
+      keyBuffer.length === KONAMI_CODE.length &&
+      keyBuffer.every((k, i) => k === KONAMI_CODE[i])
+    ) {
+      unlockSecretCourse();
+      keyBuffer = [];
+    }
+  }
+
+  function unlockSecretCourse() {
+    secretUnlocked = true;
+    // 💡 해금된 새 코스(맨 뒤에 추가됨)로 바로 이동시켜서 위/아래 카드가 즉시 일치하도록
+    currentIndex = rawCourses.length - 1;
+    showUnlockToast = true;
+    clearTimeout(unlockToastTimer);
+    unlockToastTimer = setTimeout(() => {
+      showUnlockToast = false;
+    }, 3200);
+  }
 
   onMount(() => {
     ready = true;
+    window.addEventListener('keydown', handleKonamiKeydown);
+  });
+
+  onDestroy(() => {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('keydown', handleKonamiKeydown);
+    }
+    clearTimeout(unlockToastTimer);
   });
 
   function nextMode() {
@@ -96,7 +151,7 @@
             <div class="desc-part-1">
               <h2 class="course-title">{currentCourse.title}</h2>
               <div class="stars">
-                {'★'.repeat(currentCourse.difficulty)}{'☆'.repeat(5 - currentCourse.difficulty)}
+                {'★'.repeat(Math.min(currentCourse.difficulty, 5))}{'☆'.repeat(Math.max(5 - currentCourse.difficulty, 0))}
               </div>
               
               <div class="course-roadmap">
@@ -123,6 +178,16 @@
       </a>
     </footer>
   {/if}
+
+  {#if showUnlockToast}
+    <div class="unlock-toast" transition:fly={{ y: -20, duration: 350 }}>
+      <span class="unlock-emoji">🔓</span>
+      <div class="unlock-text">
+        <strong>히든 코스 해금!</strong>
+        <span>하이퍼메가테라 초코 매니악 코스가 목록에 나타났어요.</span>
+      </div>
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -144,6 +209,7 @@
     box-sizing: border-box;
     padding: 3rem 4rem;
     gap: 2rem;
+    position: relative;
   }
 
   .top-carousel-zone {
@@ -213,12 +279,6 @@
     background-image: repeating-linear-gradient(45deg, #000 0px, #000 2px, transparent 2px, transparent 8px);
   }
 
-/* ----------------------------------------------------
-   * 100% 불투명 처리된 프리미엄 라벨 디자인
-   * ---------------------------------------------------- */
-/* ----------------------------------------------------
-   * 100% 완전 불투명(Solid) 프리미엄 라벨 디자인
-   * ---------------------------------------------------- */
   .part-label {
     flex-grow: 1;
     height: 100%;
@@ -229,24 +289,18 @@
     padding: 2rem 2.5rem;
     box-sizing: border-box;
     position: relative;
-    z-index: 3; /* 은박지(z-index:2)보다 위로 올려서 경계를 확실히 덮음 */
-    
-    /* [핵심] 투명도 없는 순수 단색/그라디언트 렌더링 강제 */
+    z-index: 3;
     background-clip: padding-box;
-    
-    /* 좌측 은박지 영역과의 경계선에 단단한 입체감과 짙은 그림자 부여 */
     border-left: 1px solid rgba(0, 0, 0, 0.4);
     box-shadow: 
-      inset -10px 0 30px rgba(0, 0, 0, 0.5), /* 우측 내부 어두운 음영 */
-      inset 15px 0 25px rgba(0, 0, 0, 0.6),  /* 좌측 은박지로부터 떨어지는 짙은 그림자 */
-      -8px 0 15px rgba(0, 0, 0, 0.5);        /* 은박지 위로 겹쳐지는 외부 그림자 */
+      inset -10px 0 30px rgba(0, 0, 0, 0.5),
+      inset 15px 0 25px rgba(0, 0, 0, 0.6),
+      -8px 0 15px rgba(0, 0, 0, 0.5);
   }
 
-  /* 라벨 내부의 은은한 고급 배경 패턴 스키마들 */
   .label-bg-pattern {
     position: absolute;
     top: 0; left: 0; width: 100%; height: 100%;
-    /* 완전 불투명한 바탕(labelColor) 위에 자연스럽게 녹아들도록 변경 */
     opacity: 0.05; 
     pointer-events: none;
     z-index: 1;
@@ -276,7 +330,6 @@
     background-size: 30px 30px;
   }
 
-/* 프레임 내부까지 완벽하게 불투명하게 만들고 싶을 때 적용할 스크립트 */
   .label-border-frame {
     width: 100%;
     height: 100%;
@@ -290,13 +343,10 @@
     justify-content: space-between;
     align-items: center;
     z-index: 2;
-    
-    /* 투명도 없는 묵직한 다크 브라운으로 내부를 채워 투명감 차단 */
     background-color: #1a0f0a; 
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   }
 
-  /* 골드 파트 구분선 */
   .gold-divider {
     width: 60px;
     height: 1px;
@@ -315,7 +365,6 @@
     font-weight: 600;
   }
 
-  /* 메인 영어 타이틀 영역 */
   .label-main-title {
     text-align: center;
     margin: auto 0;
@@ -327,7 +376,6 @@
     color: #f3e5ab; 
     letter-spacing: 5px;
     margin: 0 0 0.3rem 0;
-    /* 불투명 배경 위에서 글씨가 더 튀어나와 보이도록 그림자 강화 */
     text-shadow: 0 4px 12px rgba(0, 0, 0, 0.9), 0 0 2px rgba(212, 175, 55, 0.6);
     line-height: 1.2;
   }
@@ -359,9 +407,6 @@
     color: rgba(212, 175, 55, 0.75);
   }
 
-  /* ----------------------------------------------------
-   * 화살표 버튼 및 하단 대시보드 구조
-   * ---------------------------------------------------- */
   .arrow-btn {
     background: rgba(82, 50, 28, 0.4);
     border: 1px solid rgba(255, 183, 3, 0.25);
@@ -513,6 +558,47 @@
   .play-panel-btn:hover .play-text { color: #2b1810; text-shadow: none; }
   .play-panel-btn:hover .play-icon { transform: scale(1.2) rotate(-10deg); }
 
+  /* 💡 히든 코스 해금 토스트 */
+  .unlock-toast {
+    position: fixed;
+    top: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: rgba(26, 15, 10, 0.92);
+    border: 1px solid #ffb703;
+    box-shadow: 0 12px 30px rgba(255, 183, 3, 0.25);
+    border-radius: 14px;
+    padding: 0.75rem 1.25rem;
+    max-width: 92vw;
+  }
+
+  .unlock-emoji {
+    font-size: 1.6rem;
+    flex-shrink: 0;
+  }
+
+  .unlock-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .unlock-text strong {
+    font-family: 'Do Hyeon', sans-serif;
+    font-size: 1rem;
+    color: #ffb703;
+  }
+
+  .unlock-text span {
+    font-size: 0.8rem;
+    color: #fff6e9;
+    opacity: 0.85;
+  }
+
   /* 반응형 처리 */
   @media (max-width: 1024px) {
     .fullscreen-layout { padding: 1.5rem; height: auto; min-height: 100vh; }
@@ -526,7 +612,5 @@
       padding-bottom: 1rem;
     }
     .play-panel-btn { padding: 1.5rem; }
-    .main-branding .brand-title { font-size: 2rem; }
-    .luxury-sub-title { font-size: 1.1rem; }
   }
 </style>
