@@ -9,20 +9,33 @@
   let currentIndex = $state(0);
   let direction = $state(1);
 
-  let secretUnlocked = $state(false);
+  // 🔄 해금 레벨 상태 (0: 기본, 1: 1차 코나미 해금, 2: 2차 라벨 클릭 해금)
+  let secretUnlockedLevel = $state(0);
+  let labelClickCount = $state(0);
+
   let showUnlockToast = $state(false);
+  let toastMessage = $state({ title: '', desc: '' });
   let unlockToastTimer: ReturnType<typeof setTimeout> | undefined;
 
-  const courses = $derived(rawCourses.filter((c) => !c.hidden || secretUnlocked));
+  // 💡 해금 상태에 따른 코스 목록 필터링
+  const courses = $derived(
+    rawCourses.filter((c) => {
+      if (secretUnlockedLevel >= 2) return true; // 2차 해금: 전부 오픈
+      if (secretUnlockedLevel === 1) return !c.hiddenhidden; // 1차 해금: hiddenhidden만 제외하고 오픈
+      return !c.hidden && !c.hiddenhidden; // 기본: 히든류 전부 제외
+    })
+  );
+
   const currentCourse = $derived(courses[currentIndex]);
 
-  // 💡 배열 길이가 바뀌어도 인덱스가 항상 유효 범위 안에 있도록 보정
+  // 💡 [해결책] 배열이 변경될 때 인덱스를 안전하게 가두고, 해금 직후 타겟 인덱스로 안전하게 이동시킵니다.
   $effect(() => {
     if (currentIndex >= courses.length) {
       currentIndex = Math.max(0, courses.length - 1);
     }
   });
 
+  // 코나미 코드 정의
   const KONAMI_CODE = [
     'ArrowUp', 'ArrowUp',
     'ArrowDown', 'ArrowDown',
@@ -33,9 +46,11 @@
   let keyBuffer: string[] = [];
 
   function handleKonamiKeydown(e: KeyboardEvent) {
-    if (secretUnlocked) return;
+    if (secretUnlockedLevel >= 1) return; // 이미 해금되었다면 무시
 
+    // e.code가 확실하지 않을 때를 대비해 예외 처리 보강
     keyBuffer.push(e.code);
+    
     if (keyBuffer.length > KONAMI_CODE.length) {
       keyBuffer = keyBuffer.slice(-KONAMI_CODE.length);
     }
@@ -44,15 +59,50 @@
       keyBuffer.length === KONAMI_CODE.length &&
       keyBuffer.every((k, i) => k === KONAMI_CODE[i])
     ) {
-      unlockSecretCourse();
-      keyBuffer = [];
+      unlockSecretCourse(1);
+      keyBuffer = []; // 버퍼 초기화
     }
   }
 
-  function unlockSecretCourse() {
-    secretUnlocked = true;
-    // 💡 해금된 새 코스(맨 뒤에 추가됨)로 바로 이동시켜서 위/아래 카드가 즉시 일치하도록
-    currentIndex = rawCourses.length - 1;
+  // 💡 라벨을 클릭했을 때 호출되는 함수 (2차 해금용)
+  function handleLabelClick() {
+    // 1차 해금 상태이면서 현재 활성화된 카드가 'hidden' 카드일 때만 카운트 작동
+    if (secretUnlockedLevel === 1 && currentCourse?.hidden) {
+      labelClickCount += 1;
+      
+      if (labelClickCount >= 5) {
+        unlockSecretCourse(2);
+      }
+    }
+  }
+
+  // 해금 통합 처리 함수
+  function unlockSecretCourse(level: number) {
+    secretUnlockedLevel = level;
+
+    if (level === 1) {
+      toastMessage = {
+        title: '🔓 히든 코스 해금!',
+        desc: '하이퍼메가테라 초코 매니악 코스가 목록에 나타났어요.'
+      };
+      
+      // Svelte가 courses를 재계산한 직후 안전하게 인덱스를 맨 끝(새로 열린 코스)으로 이동하도록 유도
+      setTimeout(() => {
+        currentIndex = courses.length - 1;
+      }, 50);
+
+    } else if (level === 2) {
+      toastMessage = {
+        title: '🚨 초특급 히든 코스 해금!',
+        desc: '전설의 히든초코 속에 숨겨진 궁극의 코스가 해금되었습니다!'
+      };
+
+      setTimeout(() => {
+        currentIndex = courses.length - 1;
+      }, 50);
+    }
+
+    // 토스트 애니메이션 트리거
     showUnlockToast = true;
     clearTimeout(unlockToastTimer);
     unlockToastTimer = setTimeout(() => {
@@ -98,44 +148,51 @@
       
       <div class="chocolate-viewport">
         {#key currentIndex}
-          <div 
-            class="chocolate-bar-package"
-            in:fly={{ x: 300 * direction, opacity: 0, duration: 450 }}
-            out:fly={{ x: -300 * direction, opacity: 0, duration: 450 }}
-          >
-            <div class="part-chocolate" style:background={currentCourse.chocoColor}>
-              <div class="choco-pattern"></div>
-            </div>
-            
-            <div class="part-foil">
-              <div class="foil-texture"></div>
-            </div>
-            
-            <div class="part-label" style:background={currentCourse.labelColor}>
-              <div class="label-bg-pattern {currentCourse.patternType || 'default'}"></div>
+          {#if currentCourse}
+            <div 
+              class="chocolate-bar-package"
+              in:fly={{ x: 300 * direction, opacity: 0, duration: 450 }}
+              out:fly={{ x: -300 * direction, opacity: 0, duration: 450 }}
+            >
+              <div class="part-chocolate" style:background={currentCourse.chocoColor}>
+                <div class="choco-pattern"></div>
+              </div>
               
-              <div class="label-border-frame">
-                <div class="label-header">
-                  <span class="mini-brand">CHOMP CONFECTIONERY</span>
-                  <div class="gold-divider"></div>
-                </div>
-
-                <div class="label-main-title">
-                  <h1 class="eng-title">{currentCourse.labelText || 'FINE CHOCOLATE'}</h1>
-                  <p class="eng-subtitle">{currentCourse.subtitle || 'ARTISAN COLLECTION'}</p>
-                </div>
+              <div class="part-foil">
+                <div class="foil-texture"></div>
+              </div>
+              
+              <div 
+                class="part-label" 
+                style:background={currentCourse.labelColor}
+                onclick={handleLabelClick}
+                style:cursor={secretUnlockedLevel === 1 && currentCourse.hidden ? 'pointer' : 'default'}
+              >
+                <div class="label-bg-pattern {currentCourse.patternType || 'default'}"></div>
                 
-                <div class="label-footer">
-                  <div class="gold-divider"></div>
-                  <div class="footer-meta">
-                    <span class="edition-tag">3-STAGE COURSE</span>
-                    <span class="serial-no">NO. {String(currentIndex + 1).padStart(3, '0')}</span>
+                <div class="label-border-frame">
+                  <div class="label-header">
+                    <span class="mini-brand">CHOMP CONFECTIONERY</span>
+                    <div class="gold-divider"></div>
+                  </div>
+
+                  <div class="label-main-title">
+                    <h1 class="eng-title">{currentCourse.labelText || 'FINE CHOCOLATE'}</h1>
+                    <p class="eng-subtitle">{currentCourse.subtitle || 'ARTISAN COLLECTION'}</p>
+                  </div>
+                  
+                  <div class="label-footer">
+                    <div class="gold-divider"></div>
+                    <div class="footer-meta">
+                      <span class="edition-tag">3-STAGE COURSE</span>
+                      <span class="serial-no">NO. {String(currentIndex + 1).padStart(3, '0')}</span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-          </div>
+            </div>
+          {/if}
         {/key}
       </div>
 
@@ -147,44 +204,47 @@
     <footer class="bottom-dashboard-zone" in:fly={{ y: 40, duration: 600, delay: 200 }}>
       <div class="glass-card desc-panel">
         {#key currentIndex}
-          <div class="animated-desc-contents" in:fade={{ duration: 250 }}>
-            <div class="desc-part-1">
-              <h2 class="course-title">{currentCourse.title}</h2>
-              <div class="stars">
-                {'★'.repeat(Math.min(currentCourse.difficulty, 5))}{'☆'.repeat(Math.max(5 - currentCourse.difficulty, 0))}
+          {#if currentCourse}
+            <div class="animated-desc-contents" in:fade={{ duration: 250 }}>
+              <div class="desc-part-1">
+                <h2 class="course-title">{currentCourse.title}</h2>
+                <div class="stars">
+                  {'★'.repeat(Math.min(currentCourse.difficulty, 5))}{'☆'.repeat(Math.max(5 - currentCourse.difficulty, 0))}
+                </div>
+                
+                <div class="course-roadmap">
+                  {#each currentCourse.rounds as round (round.roundNumber)}
+                    <div class="round-badge-item">
+                      <span class="round-lbl">R{round.roundNumber}</span>
+                      <span class="round-size">{round.sizeText}</span>
+                    </div>
+                  {/each}
+                </div>
               </div>
-              
-              <div class="course-roadmap">
-                {#each currentCourse.rounds as round (round.roundNumber)}
-                  <div class="round-badge-item">
-                    <span class="round-lbl">R{round.roundNumber}</span>
-                    <span class="round-size">{round.sizeText}</span>
-                  </div>
-                {/each}
-              </div>
-            </div>
 
-            <div class="desc-part-2">
-              <p class="main-text">{currentCourse.description}</p>
-              <p class="flavor-text">{currentCourse.flavorText}</p>
+              <div class="desc-part-2">
+                <p class="main-text">{currentCourse.description}</p>
+                <p class="flavor-text">{currentCourse.flavorText}</p>
+              </div>
             </div>
-          </div>
+          {/if}
         {/key}
       </div>
 
-      <a class="glass-card play-panel-btn" href={resolve(`/play/classic/id/${currentCourse.id}` as any)}>
-        <span class="play-icon">⚔️</span>
-        <span class="play-text">코스 시작</span>
-      </a>
+      {#if currentCourse}
+        <a class="glass-card play-panel-btn" href={resolve(`/play/classic/id/${currentCourse.id}` as any)}>
+          <span class="play-icon">⚔️</span>
+          <span class="play-text">코스 시작</span>
+        </a>
+      {/if}
     </footer>
   {/if}
 
   {#if showUnlockToast}
     <div class="unlock-toast" transition:fly={{ y: -20, duration: 350 }}>
-      <span class="unlock-emoji">🔓</span>
       <div class="unlock-text">
-        <strong>히든 코스 해금!</strong>
-        <span>하이퍼메가테라 초코 매니악 코스가 목록에 나타났어요.</span>
+        <strong>{toastMessage.title}</strong>
+        <span>{toastMessage.desc}</span>
       </div>
     </div>
   {/if}

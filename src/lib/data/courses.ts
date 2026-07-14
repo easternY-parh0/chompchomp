@@ -28,6 +28,7 @@ export interface GameCourse {
   patternType: 'stripe' | 'ornament' | 'diamond'; // 라벨 배경 패턴 종류
   // --------------------------
   hidden?: boolean;
+  hiddenhidden?: boolean;
   rounds: GameRound[];
   messages: CourseMessages;
 }
@@ -128,6 +129,33 @@ export const coursesData: GameCourse[] = [
       { roundNumber: 1, rows: 7, cols: 8, sizeText: '7 × 8' },
       { roundNumber: 2, rows: 3, cols: 9, sizeText: '3 × 9' },
       { roundNumber: 3, rows: 5, cols: 10, sizeText: '5 × 10' }
+    ],
+    messages: {
+      stageClearTitle: '승리!',
+      stageClearBody: '이걸 클리어하시다니... 비결 좀 알려주세요!',
+      gameOverTitle: '아깝게 실패...',
+      gameOverBody: '괜찮아요. 다시 한번 도전해 보죠.',
+      courseClearTitle: 'THE FINAL',
+      courseClearBody: '이제 촘프 게임에서 당신의 적수는 없습니다. 축하드립니다!'
+    }
+  },
+  {
+    id: '5',
+    title: '하이퍼메가테라슈퍼울트라기가 초코 마스터마스터 코스',
+    difficulty: 9,
+    description: '도전하지 마세요...',
+    flavorText: '“최고의 정신나감, 그리고 미치광이를 위한.”',
+    chocoColor: '#43262d',
+    labelColor: 'linear-gradient(135deg, #3d2314, #1f100a)',
+    // 디자인 속성
+    labelText: 'HYPER-MEGA-TERA-SUPER-ULTRA-GIGA-CHOCO-MASTER-MASTER',
+    labelSubtitle: 'Do not try this at home',
+    patternType: 'diamond',
+    hiddenhidden: true,
+    rounds: [
+      { roundNumber: 1, rows: 11, cols: 7, sizeText: '11 × 7' },
+      { roundNumber: 2, rows: 13, cols: 8, sizeText: '13 × 8' },
+      { roundNumber: 3, rows: 15, cols: 10, sizeText: '15 × 10' }
     ],
     messages: {
       stageClearTitle: '승리!',
