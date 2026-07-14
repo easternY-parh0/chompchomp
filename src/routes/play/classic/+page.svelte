@@ -141,6 +141,10 @@
 
 <div class="fullscreen-layout">
   {#if ready}
+    <a class="local-play-link" href={resolve('/play/classic/local')} in:fade={{ delay: 300 }}>
+      👥 AI 없이 2인 로컬 대전
+    </a>
+
     <section class="top-carousel-zone">
       <button class="arrow-btn" onclick={prevMode} aria-label="이전 코스">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg>
@@ -270,6 +274,27 @@
     padding: 3rem 4rem;
     gap: 2rem;
     position: relative;
+  }
+
+  .local-play-link {
+    position: absolute;
+    top: 1.5rem;
+    right: 2rem;
+    z-index: 5;
+    color: rgba(255, 246, 233, 0.7);
+    text-decoration: none;
+    font-size: 0.85rem;
+    background: rgba(82, 50, 28, 0.4);
+    border: 1px solid rgba(255, 246, 233, 0.15);
+    padding: 0.5rem 1rem;
+    border-radius: 999px;
+    backdrop-filter: blur(8px);
+    transition: color 0.2s, border-color 0.2s;
+  }
+
+  .local-play-link:hover {
+    color: #ffb703;
+    border-color: #ffb703;
   }
 
   .top-carousel-zone {
@@ -662,6 +687,7 @@
   /* 반응형 처리 */
   @media (max-width: 1024px) {
     .fullscreen-layout { padding: 1.5rem; height: auto; min-height: 100vh; }
+    .local-play-link { position: static; display: inline-block; margin-bottom: 0.5rem; }
     .chocolate-bar-package { width: 100%; height: 280px; }
     .bottom-dashboard-zone { grid-template-columns: 1fr; height: auto; }
     .animated-desc-contents { grid-template-columns: 1fr; gap: 1.2rem; }
